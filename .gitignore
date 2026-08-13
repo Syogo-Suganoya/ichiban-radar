@@ -1,0 +1,15 @@
+# 認証情報（絶対にコミットしないこと）
+.env
+scripts/.env
+
+# 実測結果の出力
+scripts/out/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Docker
+db-data/

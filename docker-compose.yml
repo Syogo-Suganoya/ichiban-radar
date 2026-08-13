@@ -1,0 +1,44 @@
+# 実測スクリプトとデータベースの実行環境。
+#
+# Webアプリ（web/）はホストで `npm run dev` を使う。
+# アーキテクチャ図の生成（scripts/make_diagram.py）もホストで実行する。
+#
+#   docker compose run --rm scripts python measure_x.py
+#   docker compose up -d db
+
+services:
+  # 実測・解析スクリプト（X API / Instagram / Gemini）
+  scripts:
+    build: ./scripts
+    working_dir: /app
+    env_file:
+      - path: ./scripts/.env
+        required: false
+    volumes:
+      # 実行結果と .env をホストと共有する。コード変更のたびに再ビルドしないため
+      - ./scripts:/app
+      - /app/.venv
+    # 対話実行が中心なので常駐させない
+    profiles: ["cli"]
+
+  # PostGIS。Supabase 実装前のローカル検証用
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: kuji
+      POSTGRES_PASSWORD: kuji
+      POSTGRES_DB: kuji_radar
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      # 初回起動時に PostGIS 拡張を有効化する
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kuji -d kuji_radar"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  db-data:

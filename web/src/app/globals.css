@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+}
+
+/* アプリ画面は h-dvh で高さを取るが、LPは縦に長い。
+   height:100% だと背景が画面高で切れるため min-height にする */
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+}
+
+/* MapLibre の既定のフォーカスリングが地図上で目立ちすぎるため抑える */
+.maplibregl-marker:focus {
+  outline: none;
+}

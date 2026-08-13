@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>一番くじ在庫マップ ワイヤーフレーム</title>
+<style>
+:root{
+  --bg:#f4f5f7; --panel:#ffffff; --ink:#1a1d21; --sub:#6b7280; --line:#e3e6ea;
+  --accent:#3b6ef2; --accent-weak:#eaf0fe;
+  --sold:#e23b3b; --low:#f28c28; --stock:#22a45d; --unknown:#9aa0a6;
+  --verified:#7b52d3;
+  --radius:14px;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+  font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- ページ枠 ---------- */
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
+.pagehead{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;margin-bottom:6px}
+.pagehead h1{font-size:20px;margin:0;letter-spacing:.02em}
+.badge{
+  font-size:11px;padding:3px 9px;border-radius:99px;background:#fff3d6;color:#8a5a00;
+  border:1px solid #f0dca8;font-weight:600;letter-spacing:.03em;
+}
+.pagesub{color:var(--sub);font-size:13px;margin:0 0 22px}
+
+/* ---------- タブ ---------- */
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px}
+.tab{
+  border:1px solid var(--line);background:var(--panel);color:var(--sub);
+  padding:8px 15px;border-radius:99px;cursor:pointer;font-size:13px;font-family:inherit;
+  transition:.15s;
+}
+.tab:hover{border-color:#c9cfd6;color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:600}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:32px;align-items:start}
+/* デスクトップ画面（認定員管理画面）は横幅が要るので1カラムに切り替える */
+.layout.wide{grid-template-columns:1fr}
+.layout.wide .side{position:static;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.layout.wide .sidecard{margin-bottom:0}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+
+/* ---------- 端末フレーム ---------- */
+.stage{display:flex;justify-content:center}
+.phone{
+  width:390px;height:790px;background:#fff;border-radius:38px;
+  border:9px solid #14171a;position:relative;overflow:hidden;flex:none;
+  box-shadow:0 18px 44px rgba(15,20,30,.18);
+}
+.notch{
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:132px;height:26px;background:#14171a;border-radius:0 0 16px 16px;z-index:60;
+}
+.desktop{
+  width:100%;max-width:820px;background:#fff;border-radius:12px;border:1px solid var(--line);
+  overflow:hidden;box-shadow:0 10px 30px rgba(15,20,30,.10);
+}
+.screen{display:none;height:100%;flex-direction:column;position:relative}
+.screen.on{display:flex}
+
+/* ---------- アプリ内共通 ---------- */
+.appbar{
+  padding:36px 16px 10px;display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid var(--line);background:#fff;z-index:20;
+}
+.logo{font-weight:700;font-size:15px;letter-spacing:.01em}
+.logo span{color:var(--accent)}
+.searchbar{
+  flex:1;background:#f1f3f5;border-radius:9px;padding:7px 11px;
+  color:#9aa0a6;font-size:12.5px;display:flex;align-items:center;gap:6px;
+}
+.iconbtn{width:32px;height:32px;border-radius:8px;background:#f1f3f5;display:grid;place-items:center;flex:none}
+
+.chips{display:flex;gap:6px;padding:9px 14px;overflow-x:auto;background:#fff;border-bottom:1px solid var(--line);z-index:20}
+.chip{
+  flex:none;font-size:11.5px;padding:5px 11px;border-radius:99px;
+  border:1px solid var(--line);color:var(--sub);white-space:nowrap;background:#fff;
+}
+.chip.on{background:var(--accent-weak);border-color:#c3d4fb;color:var(--accent);font-weight:600}
+
+/* ---------- 地図 ---------- */
+.map{flex:1;position:relative;background:#eaeef2;overflow:hidden}
+.map svg{position:absolute;inset:0;width:100%;height:100%}
+.pin{
+  position:absolute;transform:translate(-50%,-100%);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;z-index:10;
+}
+.pin .dot{
+  width:30px;height:30px;border-radius:50% 50% 50% 4px;transform:rotate(45deg);
+  border:2.5px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.28);
+  display:grid;place-items:center;
+}
+.pin .dot b{transform:rotate(-45deg);color:#fff;font-size:11px;font-weight:700}
+.pin.sold .dot{background:var(--sold)} .pin.low .dot{background:var(--low)}
+.pin.stock .dot{background:var(--stock)} .pin.unknown .dot{background:var(--unknown)}
+.pin .tag{
+  margin-top:5px;background:#fff;border-radius:5px;padding:2px 6px;font-size:10px;
+  white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.18);font-weight:600;
+}
+.pin.verified .dot{border-color:var(--verified);border-width:3.5px;box-shadow:0 0 0 2px rgba(123,82,211,.28),0 3px 8px rgba(0,0,0,.28)}
+.pin.verified .tag{color:var(--verified)}
+.me{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 0 0 7px rgba(59,110,242,.20);transform:translate(-50%,-50%);z-index:9}
+
+.legend{
+  position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,.96);
+  border-radius:9px;padding:8px 10px;font-size:10.5px;box-shadow:0 2px 10px rgba(0,0,0,.14);z-index:15;
+}
+.legend div{display:flex;align-items:center;gap:6px;margin:2px 0}
+.legend i{width:9px;height:9px;border-radius:50%;flex:none}
+
+/* ---------- 広告 ---------- */
+.ad{
+  background:repeating-linear-gradient(135deg,#fafbfc,#fafbfc 9px,#f2f4f6 9px,#f2f4f6 18px);
+  border-top:1px solid var(--line);padding:12px;text-align:center;color:#a2a8b0;font-size:11px;z-index:20;
+}
+.ad b{display:block;color:#7d838b;font-size:12px;margin-bottom:1px}
+
+/* ---------- ボトムシート ---------- */
+.sheet{background:#fff;border-radius:18px 18px 0 0;box-shadow:0 -5px 24px rgba(0,0,0,.13);padding:8px 16px 16px;z-index:30}
+.grip{width:38px;height:4px;background:#d8dce1;border-radius:99px;margin:0 auto 12px}
+.storename{font-size:16px;font-weight:700;margin:0 0 3px}
+.storemeta{color:var(--sub);font-size:11.5px;margin:0 0 12px}
+
+.statusbox{border-radius:11px;padding:12px 13px;margin-bottom:12px}
+.statusbox.low{background:#fef4e8;border:1px solid #f7dcbb}
+.statusbox.sold{background:#fdecec;border:1px solid #f6cdcd}
+.statusrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.statuslabel{font-size:17px;font-weight:700}
+.statusbox.low .statuslabel{color:#b4650e} .statusbox.sold .statuslabel{color:#b52626}
+.tstamp{font-size:11px;color:var(--sub)}
+.conf{margin-top:9px;font-size:10.5px;color:var(--sub)}
+.bar{height:5px;background:#e6e9ed;border-radius:99px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--low)}
+
+.tagrow{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.mini{font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;letter-spacing:.02em;white-space:nowrap;display:inline-block}
+.mini.ai{background:var(--accent-weak);color:var(--accent)}
+.mini.ver{background:#f1e9fd;color:var(--verified)}
+.mini.src{background:#f1f3f5;color:var(--sub)}
+
+.h6{font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.05em;margin:14px 0 7px}
+.post{border:1px solid var(--line);border-radius:9px;padding:9px 10px;margin-bottom:7px}
+.posthead{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--sub);margin-bottom:4px}
+.src{width:15px;height:15px;border-radius:4px;display:grid;place-items:center;font-size:9px;font-weight:700;color:#fff;flex:none}
+.src.x{background:#14171a} .src.ig{background:linear-gradient(45deg,#f9ce34,#ee2a7b,#6228d7)}
+.posttext{font-size:12px;line-height:1.55}
+.hl{background:#fff2c4;border-radius:3px;padding:0 2px;font-weight:600}
+
+.note{background:#f7f8f9;border-radius:8px;padding:9px 11px;font-size:10.5px;color:var(--sub);line-height:1.55;margin-top:12px}
+.btnrow{display:flex;gap:8px;margin-top:13px}
+.btn{flex:1;text-align:center;padding:11px;border-radius:9px;font-size:13px;font-weight:600;border:1px solid var(--line);background:#fff}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+/* ---------- 報告フォーム ---------- */
+.body{flex:1;overflow:auto;padding:16px;background:#fafbfc}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.qlabel{font-size:12px;font-weight:700;margin:0 0 9px}
+.opts{display:grid;gap:7px}
+.opt{border:1.5px solid var(--line);border-radius:9px;padding:11px 12px;display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600}
+.opt i{width:11px;height:11px;border-radius:50%;flex:none}
+.opt.sel{border-color:var(--low);background:#fef4e8}
+.step{font-size:10px;color:var(--sub);letter-spacing:.06em;font-weight:700;margin-bottom:5px}
+
+/* ---------- プレミアム ---------- */
+.plan{border:1px solid var(--line);border-radius:12px;padding:15px;background:#fff;margin-bottom:11px}
+.plan.pro{border:2px solid var(--ink);position:relative}
+.plan h3{margin:0 0 3px;font-size:15px}
+.price{font-size:26px;font-weight:800;letter-spacing:-.02em}
+.price small{font-size:12px;font-weight:600;color:var(--sub)}
+.feat{list-style:none;padding:0;margin:11px 0 0;font-size:12.5px}
+.feat li{padding:4px 0 4px 21px;position:relative;color:#3d434a}
+.feat li::before{content:"✓";position:absolute;left:2px;color:var(--stock);font-weight:700}
+.feat li.no{color:#a8adb4}
+.feat li.no::before{content:"—";color:#c4c8ce}
+.ribbon{position:absolute;top:-10px;right:13px;background:var(--ink);color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px}
+
+/* ---------- 認定員管理画面 ---------- */
+.admbar{background:var(--ink);color:#fff;padding:11px 16px;display:flex;align-items:center;gap:11px;font-size:13px}
+.admbar .who{margin-left:auto;font-size:11.5px;opacity:.75}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:#f7f8f9;text-align:left;padding:9px 11px;font-size:11px;color:var(--sub);border-bottom:1px solid var(--line);font-weight:700;white-space:nowrap}
+td{padding:8px 11px;border-bottom:1px solid #f0f2f4;vertical-align:middle}
+.inp{border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:12px;background:#fff;min-width:62px;display:inline-block;color:var(--sub)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg span{padding:5px 9px;font-size:11px;font-weight:600;color:var(--sub);border-right:1px solid var(--line)}
+.seg span:last-child{border-right:0}
+.seg span.on{color:#fff}
+.seg span.on.sold{background:var(--sold)} .seg span.on.low{background:var(--low)}
+.seg span.on.stock{background:var(--stock)} .seg span.on.na{background:var(--unknown)}
+.warn{background:#fdecec;border:1px solid #f6cdcd;color:#a82020;border-radius:8px;padding:9px 12px;font-size:11.5px;margin:12px 16px}
+
+/* ---------- 右カラム ---------- */
+.side{position:sticky;top:24px}
+.sidecard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+.sidecard h2{font-size:13px;margin:0 0 10px;letter-spacing:.02em}
+.sidecard p{font-size:12.5px;color:#4b5158;margin:0 0 9px}
+.flow{font-family:var(--mono);font-size:10.5px;line-height:1.9;color:#4b5158;background:#f7f8f9;border-radius:9px;padding:11px;overflow-x:auto}
+.mock{color:#c2410c;font-weight:700}
+.real{color:#0f766e;font-weight:700}
+.k{display:flex;gap:9px;font-size:12px;padding:7px 0;border-bottom:1px dashed var(--line)}
+.k:last-child{border:0}
+.k b{flex:none;width:74px;color:var(--sub);font-weight:600;font-size:11px}
+.caption{font-size:12px;color:var(--sub);margin:14px 0 0;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="pagehead">
+    <h1>一番くじ リアルタイム在庫推測マップ</h1>
+    <span class="badge">ワイヤーフレーム / モックデータ</span>
+  </div>
+  <p class="pagesub">
+    データ収集（X API・Instagram Graph API）とAI推測（Gemini）は<strong>モックに差し替え済み</strong>。
+    集計・表示ロジックは実装コードのまま動作します。
+  </p>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-s="map">① マップ（メイン）</button>
+    <button class="tab" role="tab" aria-selected="false" data-s="detail">② 店舗詳細</button>
+    <button class="tab" role="tab" aria-selected="false" data-s="report">③ ユーザー報告</button>
+    <button class="tab" role="tab" aria-selected="false" data-s="premium">④ プレミアム</button>
+    <button class="tab" role="tab" aria-selected="false" data-s="admin">⑤ 認定員 管理画面</button>
+  </div>
+
+  <div class="layout">
+    <div>
+      <div class="stage" id="stage"></div>
+      <p class="caption" id="caption"></p>
+    </div>
+
+    <div class="side">
+      <div class="sidecard">
+        <h2>モックの境界</h2>
+        <div class="flow">
+[ X API ]  [ IG Graph API ]<br>
+        ↓<br>
+  <span class="mock">MOCK_POSTS</span>          ← モック①<br>
+        ↓<br>
+  <span class="mock">MOCK_ANALYSES</span>       ← モック②<br>
+   (本番は Gemini)<br>
+        ↓<br>
+  <span class="real">aggregate()</span>          ← 実装<br>
+  <span class="real">render()</span>             ← 実装
+        </div>
+        <p style="margin-top:11px">
+          差し替え箇所は <code>index.html</code> 内の
+          「モック境界①②」コメントの2ヶ所のみ。
+          集計（クロス検証・確信度スコアリング）と描画は本番と同じコードです。
+        </p>
+      </div>
+
+      <div class="sidecard">
+        <h2>この画面の要点</h2>
+        <div id="points"></div>
+      </div>
+
+      <div class="sidecard">
+        <h2>注意</h2>
+        <p style="margin:0">
+          タイトル名は<strong>架空のダミー</strong>です（商標配慮）。
+          クラファン・補助金資料への掲載時は、権利者との関係を踏まえて表記を確定してください。
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   モック境界 ①：データ収集層
+   本番では X API v2 / Instagram Graph API の応答に差し替える。
+   形式は scripts/measure_x.py・measure_instagram.py の出力に準拠。
+   ============================================================ */
+const MOCK_POSTS = [
+  { id:"p1", source:"x",  minutesAgo:8,
+    text:"渋谷道玄坂のローソン、ブレイブスターズ一番くじ ラストワンまであと3枚だった！迷う…" },
+  { id:"p2", source:"x",  minutesAgo:22,
+    text:"道玄坂のローソン寄ったけど上位賞はもう無かったです。残りわずかって感じ" },
+  { id:"p3", source:"ig", minutesAgo:41,
+    text:"ブレイブスターズくじ引いてきた🎯 渋谷で残り数枚らしい #一番くじ #ブレイブスターズ" },
+  { id:"p4", source:"x",  minutesAgo:15,
+    text:"センター街のセブン、完売ポスター貼ってあった…出遅れた" },
+  { id:"p5", source:"x",  minutesAgo:63,
+    text:"宮益坂のファミマ、さっき補充されてくじ箱フルだったよ" }
+];
+
+/* ============================================================
+   モック境界 ②：AI推測エンジン
+   本番では Gemini（gemini-3.1-flash-lite / Structured Output）の
+   出力に差し替える。スキーマは 2_技術仕様書 および
+   scripts/analyze_posts.py の Analysis クラスと同一。
+   ============================================================ */
+const MOCK_ANALYSES = {
+  p1:{ is_relevant:true, store_id:"s1", status:"LOW_STOCK", remaining_hint:3, confidence:0.88,
+       reason:"「ラストワンまであと3枚」という具体的な残数記述" },
+  p2:{ is_relevant:true, store_id:"s1", status:"LOW_STOCK", remaining_hint:null, confidence:0.74,
+       reason:"「上位賞が無い」「残りわずか」という状態記述" },
+  p3:{ is_relevant:true, store_id:"s1", status:"LOW_STOCK", remaining_hint:null, confidence:0.52,
+       reason:"エリアのみの言及で店舗特定の確度が低い" },
+  p4:{ is_relevant:true, store_id:"s2", status:"SOLD_OUT", remaining_hint:0, confidence:0.91,
+       reason:"「完売ポスター」の目視報告" },
+  p5:{ is_relevant:true, store_id:"s3", status:"IN_STOCK", remaining_hint:null, confidence:0.83,
+       reason:"「補充された」「くじ箱フル」という入荷直後の記述" }
+};
+
+/* 店舗マスター（本番は Supabase + PostGIS） */
+const STORES = [
+  { id:"s1", name:"ローソン 渋谷道玄坂店",     dist:"180m", x:38, y:44, verified:false },
+  { id:"s2", name:"セブン-イレブン 渋谷センター街店", dist:"320m", x:63, y:29, verified:false },
+  { id:"s3", name:"ファミリーマート 宮益坂店",  dist:"540m", x:74, y:62, verified:true  },
+  { id:"s4", name:"ローソン 渋谷桜丘店",        dist:"610m", x:22, y:70, verified:false },
+  { id:"s5", name:"書店 渋谷南口店",            dist:"780m", x:52, y:80, verified:false }
+];
+
+/* ------------------------------------------------------------
+   ここから下は実装コード（モックではない）
+   ------------------------------------------------------------ */
+const STATUS = {
+  SOLD_OUT :{ cls:"sold",    label:"完売",   short:"完売" },
+  LOW_STOCK:{ cls:"low",     label:"品薄",   short:"品薄" },
+  IN_STOCK :{ cls:"stock",   label:"十分",   short:"十分" },
+  UNKNOWN  :{ cls:"unknown", label:"情報なし", short:"?"  }
+};
+
+/** 複数投稿のクロス検証：同一店舗の判定を確信度で重み付けし、代表ステータスを決める */
+function aggregate(posts, analyses){
+  const byStore = {};
+  for(const post of posts){
+    const a = analyses[post.id];
+    if(!a || !a.is_relevant || !a.store_id) continue;
+    (byStore[a.store_id] ||= []).push({ ...a, post });
+  }
+
+  const result = {};
+  for(const [storeId, list] of Object.entries(byStore)){
+    const score = {};
+    for(const it of list) score[it.status] = (score[it.status] || 0) + it.confidence;
+
+    const status = Object.entries(score).sort((a,b)=>b[1]-a[1])[0][0];
+    const hits = list.filter(it => it.status === status);
+    // 複数投稿の一致でボーナス（クロス検証）。上限0.97
+    const base = Math.max(...hits.map(h => h.confidence));
+    const confidence = Math.min(0.97, base + (hits.length - 1) * 0.04);
+
+    result[storeId] = {
+      status, confidence,
+      remaining: hits.find(h => h.remaining_hint != null)?.remaining_hint ?? null,
+      posts: hits.sort((a,b)=>b.confidence-a.confidence).map(h => h.post),
+      minutesAgo: Math.min(...hits.map(h => h.post.minutesAgo))
+    };
+  }
+  return result;
+}
+
+const SIGNALS = aggregate(MOCK_POSTS, MOCK_ANALYSES);
+
+/* ---------- 画面テンプレート ---------- */
+const mapSvg = `<svg viewBox="0 0 390 700" preserveAspectRatio="none">
+  <rect width="390" height="700" fill="#eaeef2"/>
+  <path d="M0 250 L390 200" stroke="#fff" stroke-width="26"/>
+  <path d="M0 470 L390 520" stroke="#fff" stroke-width="20"/>
+  <path d="M120 0 L150 700" stroke="#fff" stroke-width="22"/>
+  <path d="M290 0 L250 700" stroke="#fff" stroke-width="16"/>
+  <path d="M0 100 L390 130" stroke="#fff" stroke-width="10"/>
+  <path d="M0 620 L390 660" stroke="#fff" stroke-width="10"/>
+  <rect x="20" y="140" width="80" height="80" rx="6" fill="#dfe6ea"/>
+  <rect x="300" y="330" width="80" height="110" rx="6" fill="#d7e8d9"/>
+  <rect x="170" y="540" width="70" height="70" rx="6" fill="#dfe6ea"/>
+  <rect x="150" y="190" width="70" height="52" rx="5" fill="#d5dbe2"/>
+  <text x="185" y="221" font-size="11" fill="#8b939c" text-anchor="middle" font-family="sans-serif">渋谷駅</text>
+</svg>`;
+
+function pins(){
+  return STORES.map(s => {
+    const sig = SIGNALS[s.id];
+    const st = STATUS[sig?.status || "UNKNOWN"];
+    const v = s.verified ? " verified" : "";
+    // 残数は「品薄かつ1枚以上」のときだけ出す（完売を「残り0枚」と書かない）
+    const label = (sig?.status === "LOW_STOCK" && sig.remaining > 0)
+      ? `残り${sig.remaining}枚`
+      : (s.verified ? `✓ ${st.label}` : st.label);
+    return `<div class="pin ${st.cls}${v}" style="left:${s.x}%;top:${s.y}%">
+      <div class="dot"><b>${st.short === "?" ? "?" : ""}</b></div>
+      <div class="tag">${label}</div>
+    </div>`;
+  }).join("");
+}
+
+const legend = `<div class="legend">
+  <div><i style="background:var(--sold)"></i>完売</div>
+  <div><i style="background:var(--low)"></i>品薄</div>
+  <div><i style="background:var(--stock)"></i>十分</div>
+  <div><i style="background:var(--unknown)"></i>情報不足</div>
+  <div style="margin-top:4px;padding-top:4px;border-top:1px solid #e6e9ed">
+    <i style="background:#fff;border:2.5px solid var(--verified)"></i>電話確認済み</div>
+</div>`;
+
+const appbar = `<div class="appbar">
+  <div class="logo">くじ<span>レーダー</span></div>
+  <div class="searchbar">🔍 店舗・エリアを検索</div>
+  <div class="iconbtn">☰</div>
+</div>`;
+
+const chips = `<div class="chips">
+  <div class="chip on">ブレイブスターズ</div>
+  <div class="chip">まほうの街のリリカ</div>
+  <div class="chip">剣豪列伝</div>
+  <div class="chip">すべて</div>
+</div>`;
+
+const adbar = `<div class="ad"><b>広告</b>無料プランではここに広告が表示されます</div>`;
+
+const s1 = SIGNALS.s1;
+
+const SCREENS = {
+map:{
+  frame:"phone",
+  caption:"発売日当日の渋谷エリア。ピンの色で在庫ステータスを、紫の縁で「電話確認済み」を表す。",
+  points:[
+    ["色分け","完売＝赤 / 品薄＝橙 / 十分＝緑 / 情報不足＝グレー。地図を開いた瞬間に判断できることを最優先に設計"],
+    ["残数表示","AIが具体的な残数を抽出できた場合のみ「残り3枚」と表示。推測の粒度をそのまま見せる"],
+    ["紫の縁","認定員が電話確認した店舗。信頼度の差を視覚的に区別する"],
+    ["広告枠","無料プランの収益源。プレミアムでは非表示"]
+  ],
+  html:`${appbar}${chips}
+    <div class="map">${mapSvg}${pins()}<div class="me" style="left:48%;top:56%"></div>${legend}</div>
+    ${adbar}`
+},
+
+detail:{
+  frame:"phone",
+  caption:"ピンをタップした状態。AI推測の「根拠」を必ず開示し、ユーザー自身が判断できるようにする。",
+  points:[
+    ["根拠の開示","判定の元になった投稿を必ず提示。ブラックボックスにしないことが信頼性の要"],
+    ["確信度","複数投稿の一致でスコアが上がる（クロス検証）。低確信度の情報は表示しない"],
+    ["免責","「推測」であることを常時明記。空振り時のUXリスクへの対策"],
+    ["導線","報告ボタンでUGCを促し、SNS依存度を下げる"]
+  ],
+  html:`${appbar}
+    <div class="map" style="flex:0 0 200px">${mapSvg}${pins()}</div>
+    <div class="sheet" style="flex:1;overflow:auto">
+      <div class="grip"></div>
+      <h3 class="storename">ローソン 渋谷道玄坂店</h3>
+      <p class="storemeta">現在地から 180m ・ ブレイブスターズ一番くじ</p>
+
+      <div class="statusbox low">
+        <div class="statusrow">
+          <div class="statuslabel">品薄（残り3枚）</div>
+          <div class="tstamp">${s1.minutesAgo}分前</div>
+        </div>
+        <div class="conf">確信度 ${Math.round(s1.confidence*100)}%（${s1.posts.length}件の投稿が一致）
+          <div class="bar"><i style="width:${Math.round(s1.confidence*100)}%"></i></div>
+        </div>
+      </div>
+
+      <div class="tagrow">
+        <span class="mini ai">AI推測</span>
+        <span class="mini src">X ${s1.posts.filter(p=>p.source==="x").length}件</span>
+        <span class="mini src">Instagram ${s1.posts.filter(p=>p.source==="ig").length}件</span>
+      </div>
+
+      <div class="h6">判定の根拠となった投稿</div>
+      ${s1.posts.map(p=>`
+        <div class="post">
+          <div class="posthead">
+            <span class="src ${p.source}">${p.source === "x" ? "X" : "IG"}</span>
+            ${p.minutesAgo}分前
+          </div>
+          <div class="posttext">${
+            p.text.replace(/(ラストワンまであと3枚|残りわずか|上位賞はもう無かった|残り数枚)/g,'<span class="hl">$1</span>')
+          }</div>
+        </div>`).join("")}
+
+      <div class="note">
+        ⚠️ この情報はSNS投稿からAIが推測したものであり、実際の在庫を保証するものではありません。
+        店舗へのお問い合わせはご遠慮ください。
+      </div>
+
+      <div class="btnrow">
+        <div class="btn">☆ お気に入り</div>
+        <div class="btn primary">この店舗を報告する</div>
+      </div>
+    </div>`
+},
+
+report:{
+  frame:"phone",
+  caption:"ユーザー報告（UGC）。3タップ・10秒で完了させ、自前データソースを育てる。",
+  points:[
+    ["10秒で完了","入力の手間が投稿数を決める。選択式のみでキーボード入力を排除"],
+    ["戦略的な意味","UGCが増えるほど有償のX API依存度が下がる。長期のコスト戦略そのもの"],
+    ["悪用対策","短時間の連続報告・同一店舗の集中報告を検知。AI推測との乖離もスコアリングに反映"]
+  ],
+  html:`${appbar}
+    <div class="body">
+      <div class="card">
+        <div class="step">STEP 1 / 3</div>
+        <p class="qlabel">ローソン 渋谷道玄坂店 の在庫は？</p>
+        <div class="opts">
+          <div class="opt"><i style="background:var(--sold)"></i>完売していた</div>
+          <div class="opt sel"><i style="background:var(--low)"></i>残りわずかだった</div>
+          <div class="opt"><i style="background:var(--stock)"></i>十分にあった</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="step">STEP 2 / 3</div>
+        <p class="qlabel">どのタイトル？</p>
+        <div class="chips" style="padding:0;border:0">
+          <div class="chip on">ブレイブスターズ</div>
+          <div class="chip">まほうの街のリリカ</div>
+          <div class="chip">剣豪列伝</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="step">STEP 3 / 3（任意）</div>
+        <p class="qlabel">残り枚数がわかれば</p>
+        <div class="opts" style="grid-template-columns:repeat(4,1fr);display:grid;gap:6px">
+          <div class="opt" style="justify-content:center;padding:9px">〜5</div>
+          <div class="opt" style="justify-content:center;padding:9px">〜10</div>
+          <div class="opt" style="justify-content:center;padding:9px">〜30</div>
+          <div class="opt" style="justify-content:center;padding:9px">不明</div>
+        </div>
+      </div>
+
+      <div class="btn primary" style="margin-top:4px">報告する</div>
+      <div class="note">報告は匿名で反映されます。虚偽の報告が検知された場合、投稿は非表示になります。</div>
+    </div>`
+},
+
+premium:{
+  frame:"phone",
+  caption:"収益の主柱。広告オフは付随価値で、主価値はプッシュ通知に置く。",
+  points:[
+    ["価格","月額390円 / 年額3,900円。くじ1回分（700〜900円）より安い水準に設定"],
+    ["主価値は通知","広告オフだけでは390円の価値が立たない。通知が動くまでプランを出さない"],
+    ["年額を主導線に","発売サイクル型で解約されやすいため、年額プランでオフシーズンを吸収"],
+    ["収益比重","有料転換1人＝無料ユーザー約160人分の収益"]
+  ],
+  html:`${appbar}
+    <div class="body">
+      <div class="plan">
+        <h3>無料プラン</h3>
+        <div class="price">¥0</div>
+        <ul class="feat">
+          <li>マップ閲覧・在庫ステータス表示</li>
+          <li>店舗・タイトル検索</li>
+          <li>ユーザー報告</li>
+          <li class="no">広告が表示されます</li>
+          <li class="no">プッシュ通知なし</li>
+          <li class="no">お気に入りは3店舗まで</li>
+        </ul>
+      </div>
+
+      <div class="plan pro">
+        <div class="ribbon">おすすめ</div>
+        <h3>プレミアム</h3>
+        <div class="price">¥390<small> / 月</small></div>
+        <div style="font-size:11.5px;color:var(--sub);margin-top:2px">年額 ¥3,900（2ヶ月分お得）</div>
+        <ul class="feat">
+          <li><b>在庫急変プッシュ通知</b>（品薄・完売）</li>
+          <li><b>入荷速報アラート</b></li>
+          <li><b>広告の非表示</b></li>
+          <li>お気に入り店舗 無制限</li>
+          <li>「電話確認済み」情報の優先表示</li>
+        </ul>
+        <div class="btn primary" style="margin-top:13px">プレミアムを開始</div>
+      </div>
+    </div>`
+},
+
+admin:{
+  frame:"desktop",
+  caption:"認定員専用の入力画面。研修・認定を経た認定員のみがアクセスでき、全入力がIDに紐づく。",
+  points:[
+    ["認定員限定","イタズラ電話と虚偽入力を防ぐため一般公募にしない。単価は一般相場の約2倍"],
+    ["確認不可の選択肢","未確認を空欄で放置させない。ここが虚偽入力の温床になる"],
+    ["全件ログ","入力は認定員IDに紐づけ、所要時間の異常を自動検知"],
+    ["スクリプト常時表示","5秒で終わる架電内容に固定し、店舗の負担を最小化"]
+  ],
+  html:`<div class="admbar">
+      <b>くじレーダー</b> 認定員管理画面
+      <span style="opacity:.6">|</span> ブレイブスターズ 発売日（8/16）
+      <span class="who">認定員ID: OP-0142 / 田中</span>
+    </div>
+
+    <div class="warn">
+      <b>架電スクリプト：</b>「お忙しいところ失礼します。一番くじ ブレイブスターズの在庫を確認したいのですが、まだ残っていますか？」
+      <br>禁止：店舗関係者を装う／混雑時間帯（11:30-13:30、17:00-19:00）の架電／同一店舗への複数回架電／<b>未確認情報の入力</b>
+    </div>
+
+    <table>
+      <tr><th>店舗</th><th>エリア</th><th>ステータス</th><th>残り本数</th><th>AI推測</th><th>入力時刻</th></tr>
+      <tr>
+        <td>ローソン 渋谷道玄坂店</td><td>渋谷</td>
+        <td><div class="seg"><span>完売</span><span class="on low">品薄</span><span>十分</span><span>確認不可</span></div></td>
+        <td><span class="inp">3</span></td>
+        <td><span class="mini ai">品薄 88%</span></td>
+        <td style="color:var(--sub)">11:04</td>
+      </tr>
+      <tr>
+        <td>セブン-イレブン 渋谷センター街店</td><td>渋谷</td>
+        <td><div class="seg"><span class="on sold">完売</span><span>品薄</span><span>十分</span><span>確認不可</span></div></td>
+        <td><span class="inp">0</span></td>
+        <td><span class="mini ai">完売 91%</span></td>
+        <td style="color:var(--sub)">11:07</td>
+      </tr>
+      <tr>
+        <td>ファミリーマート 宮益坂店</td><td>渋谷</td>
+        <td><div class="seg"><span>完売</span><span>品薄</span><span class="on stock">十分</span><span>確認不可</span></div></td>
+        <td><span class="inp">28</span></td>
+        <td><span class="mini ai">十分 83%</span></td>
+        <td style="color:var(--sub)">11:09</td>
+      </tr>
+      <tr>
+        <td>書店 渋谷南口店</td><td>渋谷</td>
+        <td><div class="seg"><span>完売</span><span>品薄</span><span>十分</span><span class="on na">確認不可</span></div></td>
+        <td><span class="inp" style="color:#c4c8ce">—</span></td>
+        <td><span class="mini src">データなし</span></td>
+        <td style="color:var(--sub)">11:12</td>
+      </tr>
+      <tr style="opacity:.45">
+        <td>ローソン 渋谷桜丘店</td><td>渋谷</td>
+        <td><div class="seg"><span>完売</span><span>品薄</span><span>十分</span><span>確認不可</span></div></td>
+        <td><span class="inp">—</span></td>
+        <td><span class="mini src">データなし</span></td>
+        <td style="color:var(--sub)">未入力</td>
+      </tr>
+    </table>
+
+    <div style="padding:12px 16px;font-size:11.5px;color:var(--sub);border-top:1px solid var(--line);background:#fafbfc">
+      本日の入力 4 / 50件 ・ 平均所要 2分18秒
+      <span style="color:var(--stock);margin-left:10px">✓ 入力ペース正常</span>
+    </div>`
+}
+};
+
+/* ---------- 描画 ---------- */
+const stage = document.getElementById("stage");
+const caption = document.getElementById("caption");
+const points = document.getElementById("points");
+
+function show(key){
+  const s = SCREENS[key];
+  stage.innerHTML = s.frame === "phone"
+    ? `<div class="phone"><div class="notch"></div><div class="screen on">${s.html}</div></div>`
+    : `<div class="desktop"><div class="screen on">${s.html}</div></div>`;
+  document.querySelector(".layout").classList.toggle("wide", s.frame === "desktop");
+  caption.textContent = s.caption;
+  points.innerHTML = s.points.map(([k,v]) => `<div class="k"><b>${k}</b><span>${v}</span></div>`).join("");
+}
+
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected","false"));
+    tab.setAttribute("aria-selected","true");
+    show(tab.dataset.s);
+  });
+});
+
+show("map");
+</script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+/*
+ * LP 専用スタイル。
+ *
+ * 配色は製品画面と同じ意味体系（完売=赤 / 品薄=橙 / 在庫あり=緑 / A賞=金）を使う。
+ * LPの仕事は製品の予告であり、色分けそのものが製品の中身だから。
+ */
+
+.page {
+  --ink: #14161d;
+  --night: #1b1f2e;
+  --night-2: #232839;
+  --paper: #f4f5f7;
+  --line: #e3e6ea;
+  --muted: #6b7280;
+  --sold: #e23b3b;
+  --low: #f28c28;
+  --stock: #22a45d;
+  --gold: #d4a017;
+  --accent: #3b6ef2;
+
+  --display:
+    "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--display);
+}
+
+/* ---------- ヒーローの行脚ログ ---------- */
+.logRow {
+  animation: rise 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+}
+.headline {
+  animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) 0.75s backwards;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logRow,
+  .headline {
+    animation: none;
+  }
+}
+
+/* ---------- 見出しの字詰め ---------- */
+.display {
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  line-height: 1.16;
+}
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
