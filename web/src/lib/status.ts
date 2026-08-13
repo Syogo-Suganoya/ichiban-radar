@@ -1,3 +1,9 @@
+import {
+  faInstagram,
+  faXTwitter,
+  type IconDefinition,
+} from "@fortawesome/free-brands-svg-icons";
+
 import type { StockStatus } from "./types";
 
 export const STATUS_META: Record<
@@ -38,9 +44,25 @@ export const STATUS_META: Record<
   },
 };
 
-export const SOURCE_META: Record<string, { label: string; badge: string }> = {
-  x: { label: "X", badge: "bg-neutral-900 text-white" },
-  instagram: { label: "IG", badge: "bg-pink-600 text-white" },
+/**
+ * 投稿の出所。
+ *
+ * `label` はアイコンの代替テキストとして残す（アイコンは aria-hidden なので、
+ * 読み上げと「◯件」の文言はこちらが担う）。
+ *
+ * ⚠️ Xのアイコンは Font Awesome 6.4 以降の `faXTwitter` を使う。
+ *    v4/v5 の `faTwitter` は青い鳥のままで、現在のブランドと一致しない。
+ */
+export const SOURCE_META: Record<
+  string,
+  { label: string; icon: IconDefinition; badge: string }
+> = {
+  x: { label: "X", icon: faXTwitter, badge: "bg-neutral-900 text-white" },
+  instagram: {
+    label: "Instagram",
+    icon: faInstagram,
+    badge: "bg-gradient-to-br from-amber-500 via-pink-600 to-purple-600 text-white",
+  },
 };
 
 /** 相対時刻の表示。「10分前」形式 */

@@ -23,6 +23,36 @@ def env(key: str, default: str | None = None, *, required: bool = False) -> str:
     return value
 
 
+def has(key: str) -> bool:
+    """APIキーが設定されているか。
+
+    ★ 各スクリプトは「キーが無ければ落ちる」のではなく、
+      **無い機能だけをモックに落として動き続ける**。
+      SNSのキーが無ければ収集をモックに、Geminiのキーが無ければ
+      解析をモックに、という具合に軸ごとに独立して判定する。
+
+      これにより、APIの承認を待っている間もパイプライン全体を通して
+      動作確認できる。
+    """
+    return bool(os.getenv(key, "").strip())
+
+
+def mock_notice(what: str, key: str) -> None:
+    """モックに落ちたことを必ず知らせる。
+
+    ⚠️ 黙ってモックに落ちると、実測したつもりの数字がモック由来という
+       事故が起きる。出力にも印を残すこと。
+    """
+    print(f"[MOCK] {what}: 環境変数 {key} が未設定のため、モックデータを使用します。", file=sys.stderr)
+
+
+def load_sample_posts(source: str) -> list:
+    """モック用のサンプル投稿を読む。"""
+    path = ROOT / "data" / "sample_posts.json"
+    posts = json.loads(path.read_text(encoding="utf-8"))
+    return [p for p in posts if p["source"] == source]
+
+
 def usd_jpy() -> float:
     return float(env("USD_JPY", "150"))
 

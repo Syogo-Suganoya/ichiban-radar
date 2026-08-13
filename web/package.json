@@ -10,6 +10,7 @@
     "push:keys": "web-push generate-vapid-keys"
   },
   "dependencies": {
+    "@fortawesome/free-brands-svg-icons": "^7.3.1",
     "maplibre-gl": "^6.3.0",
     "next": "16.3.0",
     "react": "19.2.8",

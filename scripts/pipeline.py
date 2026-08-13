@@ -37,7 +37,7 @@ import requests
 from google import genai
 from google.genai import types
 
-from common import OUT_DIR, env, jpy, save_json, table
+from common import OUT_DIR, env, has, jpy, load_sample_posts, mock_notice, save_json, table
 from schema import SYSTEM_PROMPT, Analysis, to_camel
 
 ROOT = Path(__file__).resolve().parent
@@ -196,9 +196,86 @@ def analyze(client: genai.Client, model: str, post: dict, use_vision: bool) -> t
     )
 
 
+"""残り本数の表記ゆれ。キーキャップ絵文字（1️⃣7️⃣）で書く店舗が多い。
+
+`1️⃣` は U+0031 U+FE0F U+20E3 であって文字コード上の `1` ではないため、
+正規化しないと残数の抽出が丸ごと落ちる（調査書 §0-2 ③）。
+"""
+KEYCAP = {f"{d}️⃣": str(d) for d in range(10)}
+
+
+def strip_keycap(text: str) -> str:
+    for emoji, digit in KEYCAP.items():
+        text = text.replace(emoji, digit)
+    return text
+
+
+def mock_analyze(post: dict) -> Analysis:
+    """Gemini を使わないルールベースの代替解析。
+
+    ★ GEMINI_API_KEY が無いときに使う。**精度を目的にしていない**。
+      APIキーの承認を待つ間も、収集→解析→出力の全体を通して
+      動作確認できるようにするためのもの。
+
+    ⚠️ ここでの判定結果を精度の実測値として扱わないこと。
+      実測は必ず Gemini 経由で行う（文書5）。
+    """
+    text = strip_keycap(post.get("text", ""))
+
+    remaining = None
+    m = re.search(r"残り[『「]?\s*(\d+)\s*[』」]?\s*(?:回|枚|口)", text)
+    if m:
+        remaining = int(m.group(1))
+
+    if re.search(r"完売|売り切れ|SOLD ?OUT", text, re.IGNORECASE):
+        status, remaining = "SOLD_OUT", 0
+    elif remaining is not None:
+        status = "LOW_STOCK" if remaining <= 10 else "IN_STOCK"
+    elif re.search(r"残りわずか|ラスト|品薄", text):
+        status = "LOW_STOCK"
+    elif re.search(r"入荷|販売開始|まだあ[るり]|在庫あり", text):
+        status = "IN_STOCK"
+    else:
+        status = "UNKNOWN"
+
+    if re.search(r"A賞[：: ]*0|上位賞は(?:もう)?(?:無|な)い|A賞.*(?:終了|なくなり)", text):
+        top_prize = "GONE"
+    elif re.search(r"A賞|上位賞|ラストワン", text):
+        top_prize = "AVAILABLE" if not re.search(r"A賞[：: ]*0", text) else "GONE"
+    else:
+        top_prize = "UNKNOWN"
+
+    # 在庫と無関係な投稿（買取告知・自慢）を落とす
+    is_relevant = status != "UNKNOWN" and not re.search(r"買取|お迎え|交換|譲渡", text)
+
+    # 店舗名らしき部分をハッシュタグと本文から拾う。
+    # 店舗アカウントは #ローソン渋谷道玄坂店 のように自ら書く（調査書 §0-2 ④）
+    store_hint = None
+    tag = re.search(r"#([^\s#]*(?:ローソン|セブン|ファミリーマート|ファミマ)[^\s#]*)", text)
+    if tag:
+        store_hint = tag.group(1)
+    else:
+        body = re.search(r"([^\s、。！!]{0,12}(?:ローソン|セブン[-‐]?イレブン|ファミリーマート|ファミマ)[^\s、。！!]{0,10})", text)
+        if body:
+            store_hint = body.group(1)
+
+    return Analysis(
+        is_relevant=is_relevant,
+        store_hint=store_hint,
+        area_hint=None,
+        title=None,
+        status=status,
+        remaining_hint=remaining,
+        top_prize=top_prize,
+        # モックであることが数値からも分かるよう、確信度は控えめに固定する
+        confidence=0.5 if is_relevant else 0.1,
+        reason="[MOCK] ルールベースの簡易判定（Gemini未使用）",
+    )
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="収集済み投稿をGeminiで解析しWebアプリ形式で出力する")
-    p.add_argument("--input", required=True, help="measure_*.py が出力したJSON")
+    p.add_argument("--input", help="measure_*.py が出力したJSON。省略時はサンプル投稿を使う")
     p.add_argument("--source", choices=["x", "instagram"], required=True)
     p.add_argument("--title-id", required=True, help="対象タイトルのID（例: t01）")
     p.add_argument("--vision", action="store_true", help="画像も解析する（Instagram向け）")
@@ -206,14 +283,20 @@ def main() -> None:
     p.add_argument("--dry-run", action="store_true", help="Geminiを呼ばず名寄せだけ確認する")
     args = p.parse_args()
 
-    path = Path(args.input)
-    if not path.exists():
-        path = OUT_DIR / args.input
-    if not path.exists():
-        sys.exit(f"[!] ファイルが見つかりません: {args.input}")
-
     stores = load_stores()
-    posts = load_posts(path, args.source)
+
+    # SNSの収集結果が無ければ、サンプル投稿で代替する
+    if args.input:
+        path = Path(args.input)
+        if not path.exists():
+            path = OUT_DIR / args.input
+        if not path.exists():
+            sys.exit(f"[!] ファイルが見つかりません: {args.input}")
+        posts = load_posts(path, args.source)
+    else:
+        mock_notice(f"{args.source} の投稿", "--input")
+        posts = load_sample_posts(args.source)
+
     if args.limit:
         posts = posts[: args.limit]
     if not posts:
@@ -230,15 +313,27 @@ def main() -> None:
         print(f"\n※ 閾値 {MATCH_THRESHOLD} 未満は「特定できず」として扱います。")
         return
 
+    # AIのキーが無ければ、解析だけをモックに落とす。
+    # 収集・名寄せ・出力はそのまま本番と同じ経路を通る
+    use_ai = has("GEMINI_API_KEY")
     model = env("GEMINI_MODEL", "gemini-3.1-flash-lite")
-    client = genai.Client(api_key=env("GEMINI_API_KEY", required=True))
-    print(f"■ {len(posts)} 件を {model} で解析します{'（画像あり）' if args.vision else ''}\n")
+
+    if use_ai:
+        client = genai.Client(api_key=env("GEMINI_API_KEY", required=True))
+        print(f"■ {len(posts)} 件を {model} で解析します{'（画像あり）' if args.vision else ''}\n")
+    else:
+        client = None
+        mock_notice("AI解析", "GEMINI_API_KEY")
+        print(f"■ {len(posts)} 件をルールベースで解析します（Gemini未使用）\n")
 
     analyzed, tok_in, tok_out, matched = [], 0, 0, 0
 
     for i, post in enumerate(posts, 1):
         try:
-            result, ti, to = analyze(client, model, post, args.vision)
+            if use_ai:
+                result, ti, to = analyze(client, model, post, args.vision)
+            else:
+                result, ti, to = mock_analyze(post), 0, 0
         except Exception as e:  # noqa: BLE001 - 1件の失敗で全体を止めない
             print(f"  [{i}/{len(posts)}] 失敗: {e}", file=sys.stderr)
             continue
@@ -293,7 +388,11 @@ def main() -> None:
             ["項目", "件数", "比率"],
         )
     )
-    print(f"\n■ コスト: {jpy(cost_usd):.2f} 円（1投稿あたり {jpy(cost_usd) / n:.4f} 円）")
+    if use_ai:
+        print(f"\n■ コスト: {jpy(cost_usd):.2f} 円（1投稿あたり {jpy(cost_usd) / n:.4f} 円）")
+    else:
+        print("\n⚠️ 上の数値は [MOCK] ルールベース判定の結果です。")
+        print("   精度の実測値として扱わないこと。GEMINI_API_KEY を設定して再実行してください。")
 
     out = save_json(f"analyzed-{args.title_id}", analyzed)
     print(f"\n→ {out}")

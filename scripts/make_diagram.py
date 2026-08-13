@@ -65,16 +65,20 @@ def main() -> None:
 
         with Cluster("配信"):
             app = React("Next.js\nMapLibre GL JS")
+            push = Server("Web Push\nVAPID")
             ads = Server("広告ネットワーク\nASP")
 
-        # 一般ユーザーはログインを持たず、閲覧のみ
-        viewer = Users("一般ユーザー\n閲覧のみ")
+        # 地図は未ログインでも使える。ログインで増えるのは
+        # お気に入りと通知だけ（CONTRIBUTING 不変条件⑥）
+        viewer = Users("一般ユーザー\nログイン任意")
 
         sources >> batch
         batch >> Edge(style="dotted", label="構造化") >> gemini
         batch >> db >> app
         app >> Edge(style="dotted") >> ads
         app >> viewer
+        # 通知が届くのはログイン済みユーザーだけ
+        app >> Edge(style="dotted", label="ログイン時") >> push >> viewer
 
     print(f"→ {path.with_suffix('.png')}")
 

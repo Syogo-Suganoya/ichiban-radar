@@ -1,5 +1,6 @@
 "use client";
 
+import BrandIcon from "@/components/BrandIcon";
 import { relativeTime, SOURCE_META, STATUS_META } from "@/lib/status";
 import { FRESH_WINDOW_HOURS } from "@/lib/aggregate";
 import { TOP_PRIZE_META } from "@/lib/stock";
@@ -137,8 +138,9 @@ export default function StoreSheet({
             return (
               <span
                 key={src}
-                className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-bold text-neutral-600"
+                className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-bold text-neutral-600"
               >
+                <BrandIcon icon={SOURCE_META[src].icon} className="h-2.5 w-2.5" />
                 {SOURCE_META[src].label} {n}件
               </span>
             );
@@ -155,9 +157,10 @@ export default function StoreSheet({
                 <li key={post.id} className="rounded-lg border border-neutral-200 p-2.5">
                   <div className="mb-1 flex items-center gap-1.5 text-[10.5px] text-neutral-500">
                     <span
-                      className={`grid h-4 w-4 place-items-center rounded text-[9px] font-bold ${SOURCE_META[post.source].badge}`}
+                      className={`grid h-4 w-4 place-items-center rounded ${SOURCE_META[post.source].badge}`}
+                      title={SOURCE_META[post.source].label}
                     >
-                      {SOURCE_META[post.source].label}
+                      <BrandIcon icon={SOURCE_META[post.source].icon} className="h-2.5 w-2.5" />
                     </span>
                     {relativeTime(post.postedAt)}
                   </div>

@@ -1,0 +1,98 @@
+[
+  {
+    "id": "mock-x-001",
+    "source": "x",
+    "text": "📣【一番くじ残数情報！】\n🎯一番くじ「ブレイブスターズ」\nA賞：0個\nB賞：1個\nC賞：2個\nA賞はございませんが、残り『16回』ですので、ラストワン賞を狙ってる方必見です！\n#ローソン渋谷道玄坂店 #渋谷区",
+    "postedAt": "2026-08-13T02:10:00.000Z",
+    "imageUrl": null,
+    "permalink": null
+  },
+  {
+    "id": "mock-x-002",
+    "source": "x",
+    "text": "‼️30%OFF‼️\n🎯【一番くじ まほうの街のリリカ】\n\\\\残り1️⃣7️⃣回です‼️//\n※景品の数は随時変動する場合がございます\n#セブンイレブン渋谷センター街店",
+    "postedAt": "2026-08-13T01:45:00.000Z",
+    "imageUrl": null,
+    "permalink": null
+  },
+  {
+    "id": "mock-x-003",
+    "source": "x",
+    "text": "【お知らせ】本日も沢山のお客様がご来店頂きまして誠にありがとうございます😆\n開催中の一番くじの残りはこんな感じです🙌\n⚠️詳細は下記画像をご覧下さい⚠️\n#ファミリーマート渋谷宮益坂店",
+    "postedAt": "2026-08-13T01:20:00.000Z",
+    "imageUrl": "https://example.invalid/mock/kuji-board-01.jpg",
+    "permalink": null
+  },
+  {
+    "id": "mock-x-004",
+    "source": "x",
+    "text": "『一番くじ ブレイブスターズ』こちらのくじは完売しました。たくさんのご来店ありがとうございました！\n#セブンイレブン渋谷神南店",
+    "postedAt": "2026-08-13T00:50:00.000Z",
+    "imageUrl": null,
+    "permalink": null
+  },
+  {
+    "id": "mock-x-005",
+    "source": "x",
+    "text": "あかん、ブレイブスターズの一番くじが奇跡的に残ってて、A賞もあるけど残り64枚で…財布と相談",
+    "postedAt": "2026-08-13T00:30:00.000Z",
+    "imageUrl": null,
+    "permalink": null
+  },
+  {
+    "id": "mock-x-006",
+    "source": "x",
+    "text": "道玄坂のローソン寄ったけど残りわずかって感じだった",
+    "postedAt": "2026-08-12T23:40:00.000Z",
+    "imageUrl": null,
+    "permalink": null
+  },
+  {
+    "id": "mock-x-007",
+    "source": "x",
+    "text": "渋谷道玄坂のローソン、ブレイブスターズ一番くじ ラストワンまであと3枚だった！A賞まだ残ってる",
+    "postedAt": "2026-08-12T23:10:00.000Z",
+    "imageUrl": null,
+    "permalink": null
+  },
+  {
+    "id": "mock-x-008",
+    "source": "x",
+    "text": "先週表参道のローソン行ったときはまだ剣豪列伝あったよ〜今もあるかは知らない",
+    "postedAt": "2026-08-12T22:00:00.000Z",
+    "imageUrl": null,
+    "permalink": null
+  },
+  {
+    "id": "mock-x-009",
+    "source": "x",
+    "text": "ブレイブスターズのB賞フィギュア、買取価格更新しました！お売りください💪 #買取情報",
+    "postedAt": "2026-08-12T21:30:00.000Z",
+    "imageUrl": null,
+    "permalink": null
+  },
+  {
+    "id": "mock-ig-001",
+    "source": "instagram",
+    "text": "本日入荷しました✨\n一番くじ まほうの街のリリカ\n残り24回です！上位賞まだあります🏆\n#一番くじ #まほうの街のリリカ #ファミリーマート渋谷明治通店 #渋谷",
+    "postedAt": "2026-08-13T02:00:00.000Z",
+    "imageUrl": "https://example.invalid/mock/kuji-ig-01.jpg",
+    "permalink": "https://example.invalid/p/mock-ig-001"
+  },
+  {
+    "id": "mock-ig-002",
+    "source": "instagram",
+    "text": "完売御礼🙇‍♀️\n一番くじ ブレイブスターズ、おかげさまで完売いたしました。\n#一番くじ #ローソン恵比寿西店",
+    "postedAt": "2026-08-13T01:05:00.000Z",
+    "imageUrl": "https://example.invalid/mock/kuji-ig-02.jpg",
+    "permalink": "https://example.invalid/p/mock-ig-002"
+  },
+  {
+    "id": "mock-ig-003",
+    "source": "instagram",
+    "text": "推しのフィギュアお迎えできて幸せ〜🥰 #一番くじ #ブレイブスターズ #推し活",
+    "postedAt": "2026-08-12T22:40:00.000Z",
+    "imageUrl": "https://example.invalid/mock/kuji-ig-03.jpg",
+    "permalink": "https://example.invalid/p/mock-ig-003"
+  }
+]

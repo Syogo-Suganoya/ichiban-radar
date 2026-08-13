@@ -23,9 +23,11 @@ import type {
  *     セッション処理は Supabase のセッションに置き換える
  *   - Realtime購読でAI判定の更新をフロントへ push する（技術仕様書 3章）
  *
- * 有効化は環境変数 DATA_SOURCE=supabase で行う（data/index.ts 参照）。
+ * 有効化は接続情報（NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY）を設定するだけでよい。
+ * 切り替えスイッチは無い（data/index.ts 参照）。
  */
-const NOT_IMPLEMENTED = "SupabaseDataSource は未実装です。DATA_SOURCE=mock を使用してください。";
+const NOT_IMPLEMENTED =
+  "SupabaseDataSource は未実装です。接続情報を外すとモックデータで動作します。";
 
 export class SupabaseDataSource implements DataSource {
   constructor(

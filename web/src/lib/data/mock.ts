@@ -3,7 +3,7 @@
  *
  * ★ 差し替え対象はこのファイルのみ。
  *   X API / Instagram Graph API / Gemini の承認・実測が済んだら
- *   SupabaseDataSource に切り替える（DATA_SOURCE=supabase）。
+ *   接続情報を設定すれば、自動的に SupabaseDataSource に切り替わる。
  *
  * 投稿日時は「現在時刻からの相対分」で生成しているため、
  * いつ開いても鮮度減衰（lib/aggregate.ts）が意味のある形で動作する。

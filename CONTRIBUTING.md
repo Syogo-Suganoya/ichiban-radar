@@ -75,7 +75,7 @@ brew install graphviz && pip3 install diagrams && python3 scripts/make_diagram.p
 [X API / IG Graph API] → [Gemini解析バッチ] → [Supabase] → DataSource → aggregate() → API Route → UI
 ```
 
-**差し替え境界は `DataSource`（`web/src/lib/data/source.ts`）の1箇所だけ**です。現在は `MockDataSource`、承認後は `SupabaseDataSource` に切り替えます（`DATA_SOURCE=supabase`）。
+**差し替え境界は `DataSource`（`web/src/lib/data/source.ts`）の1箇所だけ**です。現在は `MockDataSource`、接続情報を設定すると `SupabaseDataSource` に自動で切り替わります。
 
 ---
 

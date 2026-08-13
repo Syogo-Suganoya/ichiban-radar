@@ -35,9 +35,13 @@ UIはSNSのAPIを直接呼ばず、**常に「解析済みの結果」だけを�
 ## 実データへの差し替え手順
 
 1. `src/lib/data/supabase.ts` の `SupabaseDataSource` を実装する
-2. `.env.local` に `DATA_SOURCE=supabase` と Supabase の接続情報を設定する
+2. `.env.local` に Supabase の接続情報（`NEXT_PUBLIC_SUPABASE_URL` / `_ANON_KEY`）を設定する
 
+**切り替えスイッチはありません。接続情報が揃った時点で自動的に実データへ切り替わります。**
 `DataSource` interface（`src/lib/data/source.ts`）を満たしていれば、**UI側の変更は不要**です。
+
+> ⚠️ 逆に、接続情報が欠けていると**黙ってモックに戻ります**。実データのつもりで動かすときは、
+> 画面の「モックデータ」バッジが消えていることを必ず確認してください。
 
 ## 主要ファイル
 
