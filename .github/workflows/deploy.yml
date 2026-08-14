@@ -1,0 +1,139 @@
+# main へのマージで Cloud Run へデプロイする。
+#
+# ⚠️ **GCPの設定が済むまでは自動的にスキップされます。**
+#   リポジトリ変数 `GCP_PROJECT_ID` が未設定のうちは各ジョブが動きません。
+#   設定が無いのに実行してPRごとに赤くなる、という状態を避けるためです。
+#
+# 必要な設定（手順は docs/9_デプロイ手順書.md §8）:
+#   Variables : GCP_PROJECT_ID
+#   Secrets   : WIF_PROVIDER, DEPLOY_SERVICE_ACCOUNT
+#               NEXT_PUBLIC_MAPTILER_KEY, NEXT_PUBLIC_VAPID_PUBLIC_KEY, NEXT_PUBLIC_SITE_URL
+#
+# ⚠️ サービスアカウントのJSONキーは発行しないこと。
+#   鍵ファイルはGitHubのSecretに置いた時点で漏洩リスクが恒久化します。
+#   Workload Identity 連携なら、やり取りされるのは短命トークンだけです。
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  # 手動でも流せるようにする（ロールバック後の再適用など）
+  workflow_dispatch:
+
+# 連続でマージされたとき、古いデプロイは打ち切る。
+# ただし実行中のものは止めない（中途半端な状態で終わらせないため）
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  REGION: asia-northeast1
+  REPOSITORY: kuji
+
+jobs:
+  # デプロイ前に、CIと同じ検証をもう一度通す。
+  # mainへの直push（PRを経ないマージ）でも壊れたものが出ないように
+  verify:
+    name: 検証
+    if: vars.GCP_PROJECT_ID != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npm test
+        working-directory: web
+      - run: npx tsc --noEmit
+        working-directory: web
+      - run: npx eslint src --max-warnings=0
+        working-directory: web
+
+  web:
+    name: Webアプリ（Cloud Run サービス）
+    needs: verify
+    if: vars.GCP_PROJECT_ID != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Workload Identity 連携に必須
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: イメージをビルド
+        # ⚠️ NEXT_PUBLIC_* はビルド時にバンドルへ焼き込まれる。
+        #    Cloud Run の環境変数に後から入れても反映されないため、ここで渡す。
+        #    --tag では --build-arg を渡せないので cloudbuild.yaml を使う
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${REPOSITORY}/web:${{ github.sha }}"
+          gcloud builds submit ./web \
+            --config=web/cloudbuild.yaml \
+            --substitutions="_IMAGE=${IMAGE},_MAPTILER=${{ secrets.NEXT_PUBLIC_MAPTILER_KEY }},_VAPID=${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }},_SITE=${{ secrets.NEXT_PUBLIC_SITE_URL }}"
+
+      - name: デプロイ
+        # タグに github.sha を使うのは、問題が起きたときに
+        # 前のリビジョンへ即座に戻せるようにするため
+        run: |
+          gcloud run deploy kuji-web \
+            --image "${REGION}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${REPOSITORY}/web:${{ github.sha }}" \
+            --region "${REGION}" \
+            --quiet
+
+      - name: モックデータで起動していないか確認
+        # ⚠️ DATABASE_URL の設定漏れは黙ってモックへフォールバックする。
+        #    偽の在庫を配信していることに気づけないのが最悪なので、
+        #    デプロイのたびに機械に見張らせる
+        run: |
+          URL=$(gcloud run services describe kuji-web --region "${REGION}" --format='value(status.url)')
+          echo "デプロイ先: $URL"
+          if curl -sf "$URL" | grep -q "モックデータ"; then
+            echo "::error::本番がモックデータで起動しています。DATABASE_URL を確認してください。"
+            exit 1
+          fi
+          echo "実データで起動しています。"
+
+  batch:
+    name: 収集・解析バッチ（Cloud Run Jobs）
+    needs: verify
+    if: vars.GCP_PROJECT_ID != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: イメージをビルド
+        run: |
+          gcloud builds submit ./scripts \
+            --tag "${REGION}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${REPOSITORY}/batch:${{ github.sha }}"
+
+      - name: ジョブを更新
+        # ⚠️ ここでジョブを実行はしない。X APIは1件読むごとに課金されるため、
+        #    デプロイのたびに走らせると請求が積み上がる。
+        #    実行は Cloud Scheduler に任せる
+        run: |
+          gcloud run jobs update kuji-collect \
+            --image "${REGION}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${REPOSITORY}/batch:${{ github.sha }}" \
+            --region "${REGION}" \
+            --quiet

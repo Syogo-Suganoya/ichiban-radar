@@ -1,0 +1,28 @@
+# Cloud Build の設定。
+#
+# ⚠️ `gcloud builds submit --tag` では **--build-arg を渡せない**。
+#   NEXT_PUBLIC_* はビルド時にバンドルへ焼き込まれる必要があるため、
+#   この設定ファイル経由でビルドする。
+#   （--tag のまま進めると、MapTilerキーが入らないまま本番に出る）
+
+substitutions:
+  _IMAGE: ""
+  _MAPTILER: ""
+  _VAPID: ""
+  _SITE: ""
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg=NEXT_PUBLIC_MAPTILER_KEY=${_MAPTILER}
+      - --build-arg=NEXT_PUBLIC_VAPID_PUBLIC_KEY=${_VAPID}
+      - --build-arg=NEXT_PUBLIC_SITE_URL=${_SITE}
+      - --tag=${_IMAGE}
+      - .
+
+images:
+  - ${_IMAGE}
+
+options:
+  logging: CLOUD_LOGGING_ONLY

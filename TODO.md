@@ -65,7 +65,10 @@
 - [ ] Cloud Run Jobs + Cloud Scheduler でバッチを定期実行
 - [ ] **予算アラートを設定する**（従量課金のため、バグがそのまま請求になる）
 - [ ] 独自ドメインのマッピング
-- [ ] GitHub Actions（Workload Identity 連携。**JSONキーは発行しない**）
+- [x] GitHub Actions の CI / CD（`.github/workflows/`）
+- [ ] **リポジトリ変数 `GCP_PROJECT_ID` を設定する** — これを入れるまでデプロイは自動スキップされる
+- [ ] Workload Identity 連携を作る（**JSONキーは発行しない**。`--attribute-condition` を必ず付ける）
+- [ ] ⚠️ DBマイグレーションは自動化していない。スキーマ変更は Neon の SQL Editor で手動
 
 ---
 

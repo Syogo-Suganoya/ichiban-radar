@@ -110,6 +110,9 @@ docker compose run --rm scripts python -m unittest discover -p "test_*.py"
 すべて通ることを確認してください。警告も残さない方針です。
 **同じ内容を [CI](.github/workflows/ci.yml) が PR で自動実行します。**片方だけ増やさないこと。
 
+main へマージすると [Deploy](.github/workflows/deploy.yml) が Cloud Run へ反映します
+（リポジトリ変数 `GCP_PROJECT_ID` が未設定のうちは自動でスキップされます）。
+
 **テストは [`aggregate.test.ts`](web/src/lib/aggregate.test.ts) だけあります。**
 集計エンジンは**壊れても画面上は気づけない**唯一の場所だからです。確信度が 0.79 から 0.85 に
 変わってもUIは何事もなく表示されますが、「複数投稿が一致するほど確信度が上がる」という
