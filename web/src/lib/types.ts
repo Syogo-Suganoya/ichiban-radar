@@ -106,6 +106,18 @@ export interface User {
   /** scrypt のハッシュ（"salt:hash"）。平文は保存しない */
   passwordHash: string;
   createdAt: string;
+
+  /**
+   * プレミアムの有効期限（ISO文字列）。null は未契約。
+   *
+   * ★ 「契約中フラグ」ではなく**期限**で持つ。解約後も期間末までは
+   *   使えるのが定期課金の通例で、フラグだと解約と同時に切れてしまう。
+   *   判定は lib/billing.ts の isPremium() に集約する。
+   */
+  premiumUntil: string | null;
+
+  /** Stripe の顧客ID。Webhookで購読と利用者を突き合わせるために持つ */
+  stripeCustomerId: string | null;
 }
 
 /**

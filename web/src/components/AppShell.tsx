@@ -13,8 +13,12 @@ import type { InventorySignal, Store, Title } from "@/lib/types";
  * 一般ユーザー向け画面。
  *
  * ★ ログインは**任意**。未ログインでも地図・店舗詳細・A賞フィルタは使える。
- *   ログインで増えるのは「お気に入り」と「在庫急変の通知」だけで、
- *   ログイン状態でないとそれらのUIは出さない（使えない機能を見せない）。
+ *   増えるのは「お気に入り」と「在庫急変の通知」だけで、
+ *   使えない状態ではそれらのUIを出さない（使えない機能を見せない）。
+ *
+ * ⚠️ お気に入り・通知の出し分けは `signedIn` ではなく **`premium`** で行う。
+ *   決済OFF（β版）では premium = ログイン済み だが、決済ONにすると
+ *   「ログイン済みだが未契約」の状態が生まれるため。
  */
 
 // MapLibre は window に依存するため SSR を無効化する
@@ -29,6 +33,8 @@ interface Props {
   initialTitleId: string;
   initialSignals: InventorySignal[];
   mockMode: boolean;
+  initialPremium: boolean;
+  paymentsEnabled: boolean;
   /** ログイン中なら表示名。未ログインなら null */
   initialDisplayName: string | null;
   initialFavorites: string[];
@@ -40,6 +46,8 @@ export default function AppShell({
   initialTitleId,
   initialSignals,
   mockMode,
+  initialPremium,
+  paymentsEnabled,
   initialDisplayName,
   initialFavorites,
 }: Props) {
@@ -50,6 +58,7 @@ export default function AppShell({
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [displayName, setDisplayName] = useState(initialDisplayName);
   const [favorites, setFavorites] = useState(initialFavorites);
+  const [premium, setPremium] = useState(initialPremium);
   const [authOpen, setAuthOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -104,9 +113,21 @@ export default function AppShell({
     });
     setDisplayName(null);
     setFavorites([]);
+    setPremium(false);
     setOnlyFavorites(false);
     setPush((p) => ({ ...p, on: false }));
     setToast("ログアウトしました。");
+  }, []);
+
+  /** Stripe カスタマーポータルへ。解約・支払い方法の変更・領収書はすべてここ */
+  const openPortal = useCallback(async () => {
+    const res = await fetch("/api/billing/portal", { method: "POST" });
+    if (!res.ok) {
+      setToast("契約情報を開けませんでした。");
+      return;
+    }
+    const { url } = (await res.json()) as { url: string };
+    window.location.href = url;
   }, []);
 
   const togglePush = useCallback(async () => {
@@ -174,6 +195,7 @@ export default function AppShell({
         <div className="ml-auto flex items-center gap-2">
           {signedIn ? (
             <>
+              {premium && (
               <button
                 onClick={() => void togglePush()}
                 disabled={!push.supported}
@@ -184,6 +206,16 @@ export default function AppShell({
               >
                 {push.on ? "🔔" : "🔕"}
               </button>
+              )}
+              {/* 解約導線を隠さない。特商法上も、契約内容へ到達できる必要がある */}
+              {paymentsEnabled && premium && (
+                <button
+                  onClick={() => void openPortal()}
+                  className="cursor-pointer rounded-lg px-2 py-1 text-[11.5px] text-neutral-500 transition hover:text-neutral-900"
+                >
+                  契約内容
+                </button>
+              )}
               <button
                 onClick={() => void signOut()}
                 className="cursor-pointer rounded-lg px-2 py-1 text-[11.5px] text-neutral-500 transition hover:text-neutral-900"
@@ -223,7 +255,7 @@ export default function AppShell({
         </div>
 
         {/* お気に入り絞り込みはログイン中だけ出す */}
-        {signedIn && (
+        {premium && (
           <button
             onClick={() => setOnlyFavorites((v) => !v)}
             title="お気に入り店舗だけを表示"
@@ -296,7 +328,7 @@ export default function AppShell({
             store={selected.store}
             title={title}
             signal={selected.signal}
-            signedIn={signedIn}
+            signedIn={premium}
             favorite={favorites.includes(selected.store.id)}
             onToggleFavorite={() => void toggleFavorite(selected.store.id)}
             onRequestSignIn={() => setAuthOpen(true)}
@@ -306,10 +338,12 @@ export default function AppShell({
 
         {authOpen && (
           <AuthSheet
+            paymentsEnabled={paymentsEnabled}
             onClose={() => setAuthOpen(false)}
-            onSignedIn={(name, favs) => {
+            onSignedIn={(name, favs, isPremium) => {
               setDisplayName(name);
               setFavorites(favs);
+              setPremium(isPremium);
               setAuthOpen(false);
               setToast(`${name} さん、ログインしました。`);
             }}
@@ -327,6 +361,29 @@ export default function AppShell({
         <b className="block text-xs text-neutral-500">広告</b>
         無料プランではここに広告が表示されます
       </div>
+
+      {/* 非公式であることの明示と、公式サイトへの導線。
+          地図の高さを削るので1行に収める。公式情報（発売日・取扱店）は
+          本家が正であり、ここへ誘導するのが利用者にとっても正確 */}
+      <footer className="flex items-center justify-center gap-2 border-t border-neutral-200 px-3 py-1.5 text-[10px] text-neutral-400">
+        <span>非公式サービスです</span>
+        <span aria-hidden>・</span>
+        <a
+          href="/legal/terms"
+          className="text-neutral-500 underline underline-offset-2 transition hover:text-neutral-900"
+        >
+          規約・ポリシー
+        </a>
+        <span aria-hidden>・</span>
+        <a
+          href="https://1kuji.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-neutral-500 underline underline-offset-2 transition hover:text-neutral-900"
+        >
+          一番くじ公式サイト ↗
+        </a>
+      </footer>
     </main>
   );
 }

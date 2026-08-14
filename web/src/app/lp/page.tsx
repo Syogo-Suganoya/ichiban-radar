@@ -371,6 +371,21 @@ export default function LandingPage() {
         style={{ borderTop: "1px solid var(--line)", color: "var(--muted)" }}
       >
         <div className="mx-auto max-w-5xl space-y-1.5">
+          {/* 発売日・取扱店・商品内容の一次情報は本家が正。
+              非公式である旨と併せて、最初に導線を出す */}
+          <p className="mb-4 text-[12.5px]">
+            一番くじの発売日・取扱店舗などの公式情報は{" "}
+            <a
+              href="https://1kuji.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold underline underline-offset-2 transition hover:opacity-70"
+              style={{ color: "var(--ink)" }}
+            >
+              一番くじ公式サイト ↗
+            </a>{" "}
+            をご確認ください。
+          </p>
           <p>
             ※ 本サービスは個人が開発する非公式のサービスです。株式会社BANDAI
             SPIRITS様をはじめとする各権利者様とは一切関係ありません。
@@ -380,6 +395,17 @@ export default function LandingPage() {
             ※ 表示する在庫情報は推測であり、実際の在庫を保証するものではありません。店舗様へのお問い合わせはご遠慮ください。
           </p>
           <p>※ データ取得は公式APIのみを使用しています。</p>
+          <p className="flex flex-wrap gap-x-4 gap-y-1 pt-2">
+            {[
+              ["/legal/terms", "利用規約"],
+              ["/legal/privacy", "プライバシーポリシー"],
+              ["/legal/tokushoho", "特定商取引法に基づく表記"],
+            ].map(([href, label]) => (
+              <a key={href} href={href} className="underline underline-offset-2 hover:opacity-70">
+                {label}
+              </a>
+            ))}
+          </p>
         </div>
       </footer>
     </div>

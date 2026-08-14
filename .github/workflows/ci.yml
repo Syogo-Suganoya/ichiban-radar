@@ -1,0 +1,72 @@
+# PRとmainへのpushで、手元と同じ検証を機械にやらせる。
+#
+# ★ CONTRIBUTING の「提出前に必ず通すもの」と同じ内容にすること。
+#   片方だけ増やすと、手元では通るのにCIで落ちる（またはその逆）状態になる。
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# 同じブランチへ連続でpushしたら、古い実行は打ち切る
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Web（テスト・型・Lint・ビルド）
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+      - run: npm test
+      - run: npx tsc --noEmit
+      - run: npx eslint src --max-warnings=0
+      # ⚠️ ビルドには秘密情報を渡さない。モックデータで通ることだけ確認する
+      - run: npm run build
+
+  scripts:
+    name: スクリプト（名寄せ・ルールベース解析のテスト）
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: scripts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          # ローカルのDockerイメージと同じ 3.9 に揃える。
+          # ここを上げるなら schema.py の Optional[] 制約も見直すこと
+          python-version: "3.9"
+      - run: pip install -r requirements.txt
+      - run: python -m unittest discover -p "test_*.py" -v
+
+  generated:
+    name: 生成物が最新か
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      # 店舗マスターを変えたのに再生成し忘れると、
+      # 画面とDBで内容がずれる（不変条件①b）
+      - run: python3 scripts/gen_stores.py
+      - name: 差分がないことを確認
+        run: |
+          if ! git diff --exit-code; then
+            echo "::error::店舗マスターの生成物が古いです。python3 scripts/gen_stores.py を実行してコミットしてください。"
+            exit 1
+          fi

@@ -214,7 +214,7 @@ Geminiを呼ばずに**店舗名の名寄せ精度だけ**を確認すること�
 docker compose run --rm scripts python pipeline.py --input out/x-sample-20260813-101500.json --source x --title-id t01 --dry-run
 ```
 
-出力される `out/analyzed-t01-*.json` は `web/src/lib/types.ts` の `AnalyzedPost[]` と同じ形式です。Supabase実装後は、この内容をそのままDBへ書き込みます。
+出力される `out/analyzed-t01-*.json` は `web/src/lib/types.ts` の `AnalyzedPost[]` と同じ形式です。Neon実装後は、この内容をそのままDBへ書き込みます。
 
 ---
 

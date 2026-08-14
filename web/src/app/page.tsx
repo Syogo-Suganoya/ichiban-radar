@@ -1,5 +1,6 @@
 import AppShell from "@/components/AppShell";
 import { getSessionUserId } from "@/lib/auth";
+import { isPaymentsEnabled, isPremium } from "@/lib/billing";
 import { getDataSource, isMockMode } from "@/lib/data";
 import { loadSignals } from "@/lib/signals";
 
@@ -15,7 +16,9 @@ export default async function Page() {
   // ログインは任意。未ログインでもここから先は同じように動く
   const userId = await getSessionUserId();
   const user = userId ? await source.findUserById(userId) : null;
-  const favorites = user ? await source.listFavorites(user.id) : [];
+  const premium = isPremium(user);
+  // お気に入りはプレミアム機能。未契約なら読まない
+  const favorites = premium && user ? await source.listFavorites(user.id) : [];
 
   return (
     <AppShell
@@ -26,6 +29,8 @@ export default async function Page() {
       mockMode={isMockMode()}
       initialDisplayName={user?.displayName ?? null}
       initialFavorites={favorites}
+      initialPremium={premium}
+      paymentsEnabled={isPaymentsEnabled()}
     />
   );
 }

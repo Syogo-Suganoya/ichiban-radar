@@ -3,7 +3,7 @@
  *
  * ★ 差し替え対象はこのファイルのみ。
  *   X API / Instagram Graph API / Gemini の承認・実測が済んだら
- *   接続情報を設定すれば、自動的に SupabaseDataSource に切り替わる。
+ *   DATABASE_URL を設定すれば、自動的に NeonDataSource に切り替わる。
  *
  * 投稿日時は「現在時刻からの相対分」で生成しているため、
  * いつ開いても鮮度減衰（lib/aggregate.ts）が意味のある形で動作する。
@@ -13,6 +13,7 @@
  * ⚠️ タイトル名は商標配慮のため架空のダミー。
  */
 
+import { STORES, TITLES } from "./stores.generated";
 import type { DataSource } from "./source";
 import type {
   AnalyzedPost,
@@ -26,28 +27,6 @@ import type {
   VerifiedReport,
 } from "@/lib/types";
 
-const STORES: Store[] = [
-  { id: "s01", name: "ローソン 渋谷道玄坂店", chain: "ローソン", address: "東京都渋谷区道玄坂2-6", lat: 35.6584, lng: 139.6976 },
-  { id: "s02", name: "セブン-イレブン 渋谷センター街店", chain: "セブン-イレブン", address: "東京都渋谷区宇田川町25", lat: 35.6606, lng: 139.6982 },
-  { id: "s03", name: "ファミリーマート 渋谷宮益坂店", chain: "ファミリーマート", address: "東京都渋谷区渋谷1-8", lat: 35.6600, lng: 139.7051 },
-  { id: "s04", name: "ローソン 渋谷桜丘店", chain: "ローソン", address: "東京都渋谷区桜丘町14", lat: 35.6551, lng: 139.6989 },
-  { id: "s05", name: "セブン-イレブン 渋谷神南店", chain: "セブン-イレブン", address: "東京都渋谷区神南1-20", lat: 35.6640, lng: 139.6995 },
-  { id: "s06", name: "ファミリーマート 渋谷明治通店", chain: "ファミリーマート", address: "東京都渋谷区渋谷1-14", lat: 35.6620, lng: 139.7038 },
-  { id: "s07", name: "ローソン 恵比寿西店", chain: "ローソン", address: "東京都渋谷区恵比寿西1-8", lat: 35.6483, lng: 139.7080 },
-  { id: "s08", name: "セブン-イレブン 代官山店", chain: "セブン-イレブン", address: "東京都渋谷区代官山町14", lat: 35.6485, lng: 139.6995 },
-  { id: "s09", name: "ファミリーマート 原宿竹下通り店", chain: "ファミリーマート", address: "東京都渋谷区神宮前1-17", lat: 35.6712, lng: 139.7050 },
-  { id: "s10", name: "ローソン 表参道店", chain: "ローソン", address: "東京都渋谷区神宮前5-10", lat: 35.6665, lng: 139.7085 },
-  { id: "s11", name: "セブン-イレブン 渋谷公園通り店", chain: "セブン-イレブン", address: "東京都渋谷区宇田川町15", lat: 35.6633, lng: 139.6966 },
-  { id: "s12", name: "ファミリーマート 渋谷南平台店", chain: "ファミリーマート", address: "東京都渋谷区南平台町2", lat: 35.6555, lng: 139.6944 },
-  { id: "s13", name: "書店 渋谷南口店", chain: "書店", address: "東京都渋谷区渋谷3-27", lat: 35.6567, lng: 139.7027 },
-  { id: "s14", name: "ローソン 神泉駅前店", chain: "ローソン", address: "東京都渋谷区円山町5", lat: 35.6577, lng: 139.6928 },
-];
-
-const TITLES: Title[] = [
-  { id: "t01", name: "ブレイブスターズ", releaseDate: "2026-08-16" },
-  { id: "t02", name: "まほうの街のリリカ", releaseDate: "2026-08-22" },
-  { id: "t03", name: "剣豪列伝", releaseDate: "2026-09-05" },
-];
 
 /** minutesAgo からISO文字列を作る。ページを開くたびに鮮度が更新される */
 function ago(minutes: number): string {
@@ -123,7 +102,7 @@ const SEEDS: Record<string, Seed[]> = {
 /**
  * 書き込み系のインメモリストア。
  *
- * ⚠️ プロセス再起動で消える。Supabase実装までの暫定措置。
+ * ⚠️ プロセス再起動で消える。Neon実装までの暫定措置。
  * ⚠️ globalThis に置いているのは、開発サーバーでは Route Handler と
  *    Server Component がモジュールを別インスタンスとして読み込むことがあり、
  *    モジュールスコープの配列だと書き込みが画面に反映されないため。
@@ -253,6 +232,29 @@ export class MockDataSource implements DataSource {
     };
     USERS.push(user);
     return user;
+  }
+
+  async updateUserPassword(userId: string, passwordHash: string): Promise<void> {
+    const user = USERS.find((u) => u.id === userId);
+    if (user) user.passwordHash = passwordHash;
+  }
+
+  async findUserByStripeCustomerId(customerId: string): Promise<User | null> {
+    return USERS.find((u) => u.stripeCustomerId === customerId) ?? null;
+  }
+
+  async setUserPremium(
+    userId: string,
+    input: { premiumUntil: string | null; stripeCustomerId?: string | null },
+  ): Promise<void> {
+    const user = USERS.find((u) => u.id === userId);
+    if (!user) return;
+
+    user.premiumUntil = input.premiumUntil;
+    // 顧客IDは未指定なら維持する。解約時に消すと再契約で紐付けを失う
+    if (input.stripeCustomerId !== undefined) {
+      user.stripeCustomerId = input.stripeCustomerId;
+    }
   }
 
   async listFavorites(userId: string): Promise<string[]> {

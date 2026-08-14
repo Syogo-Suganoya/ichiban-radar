@@ -61,7 +61,7 @@ def main() -> None:
             batch = Python("Python\n収集・解析バッチ")
             gemini = Server("Gemini\n3.1 Flash-Lite")
 
-        db = PostgreSQL("Supabase\nPostgreSQL + PostGIS")
+        db = PostgreSQL("Neon\nPostgreSQL + PostGIS")
 
         with Cluster("配信"):
             app = React("Next.js\nMapLibre GL JS")

@@ -40,11 +40,32 @@ cd web && npm install && cp .env.example .env.local && npm run dev
 Python とデータベースは Docker で立てます。ホストに Python 環境を作る必要はありません。
 
 ```bash
-cp scripts/.env.example scripts/.env   # APIキーを記入
+cp scripts/.env.example scripts/.env   # APIキーを記入（空でもモックで動く）
 docker compose build scripts
-docker compose run --rm scripts python measure_x.py
-docker compose up -d db                # PostGIS（ローカル検証用）
+docker compose run --rm scripts python pipeline.py --source x --title-id t01
+docker compose up -d db                # PostGIS
 ```
+
+### 実データで動かす（ローカル）
+
+```bash
+docker compose up -d db
+```
+
+`web/.env.local` に接続先を書けば、その瞬間から実データを読みます。
+
+```
+DATABASE_URL=postgresql://kuji:kuji@localhost:5432/kuji_radar
+```
+
+スキーマと初期データは `db/init/` が初回起動時に自動で流します。
+**既存ボリュームがある場合は自動実行されない**ので、手で適用してください。
+
+```bash
+docker compose exec -T db psql -U kuji -d kuji_radar -f - < db/init/02_schema.sql
+```
+
+接続情報を残したままモックに戻したいときは `USE_MOCK_DATA=true` を足します。
 
 APIキーの取得方法は [docs/5_APIキー取得手順と実測手順.md](docs/5_APIキー取得手順と実測手順.md) にあります。
 
@@ -72,20 +93,27 @@ brew install graphviz && pip3 install diagrams && python3 scripts/make_diagram.p
 ### データの流れ
 
 ```
-[X API / IG Graph API] → [Gemini解析バッチ] → [Supabase] → DataSource → aggregate() → API Route → UI
+[X API / IG Graph API] → [Gemini解析バッチ] → [Neon] → DataSource → aggregate() → API Route → UI
 ```
 
-**差し替え境界は `DataSource`（`web/src/lib/data/source.ts`）の1箇所だけ**です。現在は `MockDataSource`、接続情報を設定すると `SupabaseDataSource` に自動で切り替わります。
+**差し替え境界は `DataSource`（`web/src/lib/data/source.ts`）の1箇所だけ**です。現在は `MockDataSource`、`DATABASE_URL` を設定すると `NeonDataSource` に自動で切り替わります。
 
 ---
 
 ## 提出前に必ず通すもの
 
 ```bash
-cd web && npx tsc --noEmit && npx eslint src --max-warnings=0 && npm run build
+cd web && npm test && npx tsc --noEmit && npx eslint src --max-warnings=0 && npm run build
+docker compose run --rm scripts python -m unittest discover -p "test_*.py"
 ```
 
-3つすべてが通ることを確認してください。警告も残さない方針です。
+すべて通ることを確認してください。警告も残さない方針です。
+**同じ内容を [CI](.github/workflows/ci.yml) が PR で自動実行します。**片方だけ増やさないこと。
+
+**テストは [`aggregate.test.ts`](web/src/lib/aggregate.test.ts) だけあります。**
+集計エンジンは**壊れても画面上は気づけない**唯一の場所だからです。確信度が 0.79 から 0.85 に
+変わってもUIは何事もなく表示されますが、「複数投稿が一致するほど確信度が上がる」という
+信頼性の根拠が崩れます。**閾値や重みを触ったら、必ずテストも一緒に直してください。**
 
 ---
 
@@ -107,10 +135,23 @@ AI推測エンジンの出力スキーマは2箇所に存在します。
 > Pydantic はフィールドの型注釈を実行時に評価するため、Python 3.9 では `str | None` が `TypeError` になります。
 > `from __future__ import annotations` があっても回避できません（他のファイルは遅延評価なので新しい記法で問題ありません）。
 
-### 1b. 店舗マスターが2箇所にある（Supabase実装までの暫定）
+### 1b. 店舗マスターは1箇所から生成する
 
-[`web/src/lib/data/mock.ts`](web/src/lib/data/mock.ts) と [`scripts/data/stores.json`](scripts/data/stores.json) に同じ店舗リストが存在します。
-名寄せの検証にはPython側が、画面表示にはTS側が使います。**片方だけ増やすと解析結果が画面に出ない**ので、両方を更新してください。Supabase実装時に解消します。
+**正は [`scripts/data/stores.json`](scripts/data/stores.json) の1つだけ**です。変更したら再生成してください。
+
+```bash
+python3 scripts/gen_stores.py
+```
+
+生成されるのは次の2つで、**直接編集しないでください**。
+
+| 生成物 | 用途 |
+| :--- | :--- |
+| `web/src/lib/data/stores.generated.ts` | モックとUIが読む |
+| `db/init/03_seed.sql` | DBの初期データ |
+
+以前は3箇所に手書きされており、**片方だけ増やすと解析結果が画面に出ない**状態でした。
+再生成し忘れは [CI](.github/workflows/ci.yml) の `generated` ジョブが検出します。
 
 ### 2. オペレーターに「ステータス」を入力させない
 
@@ -170,6 +211,16 @@ UIコンポーネントから外部APIを呼ぶコードを足すと、この分
 [`web/src/lib/auth.ts`](web/src/lib/auth.ts) は Cookie も署名の名前空間も分けています。
 1つのセッションに role を持たせる方式に変えると、権限の取り違えが起きたときの被害が大きくなります。
 
+### 6d. Route Handler は必ず `route()` で包む
+
+[`web/src/lib/api.ts`](web/src/lib/api.ts) の `route()` が例外を500に畳みます。
+
+**例外の詳細を利用者に返さないため**です。DB接続エラーのメッセージにはホスト名やユーザー名が
+含まれることがあり、そのまま返すと構成情報が漏れます。
+
+認証・パスワード再設定には `rateLimited()` も併用します。とくに**再設定はメールアドレス単位でも
+絞ってください**。IPだけだと、回線を変えながら同じ宛先に送信を繰り返せてしまいます（メール爆撃）。
+
 ### 7. オペレーターIDはセッションから取る
 
 [`web/src/app/api/admin/reports/route.ts`](web/src/app/api/admin/reports/route.ts) は、
@@ -221,9 +272,9 @@ X APIは**投稿1件の読み取りごとに約0.75円**の従量課金です。
 
 | 領域 | 備考 |
 | :--- | :--- |
-| Supabase（PostGIS）実装 | `web/src/lib/data/supabase.ts` の空実装を埋める。これが済むと店舗マスターの二重管理も解消できる |
+| Neon（PostGIS）実装 | `web/src/lib/data/neon.ts` の空実装を埋める。これが済むと店舗マスターの二重管理も解消できる |
 | 解析バッチの定期実行 | `scripts/pipeline.py` をCronで回し、出力をDBへ書き込む。本番は Cloud Run Jobs + Cloud Scheduler を想定（[デプロイ手順書](docs/9_デプロイ手順書.md)） |
 | 本番デプロイ | Cloud Run + Neon。手順・必要なコード変更・チェックリストは[デプロイ手順書](docs/9_デプロイ手順書.md) |
-| パスワード再設定 | 現在は再設定手段がない |
+| **メール送信基盤** | パスワード再設定は実装済みだが、**リンクをサーバーログに出すだけでメールが届かない**。Resend / SendGrid 等の導入が必要（`web/src/app/api/auth/reset/route.ts`） |
 | **プレミアムの決済** | 現在は登録すれば無料でプレミアム機能が使える（画面上で明示済み）。Stripe想定 |
 | 地図タイルの本番対応 | 現在はOSM公式タイルにフォールバック。**規約上、本番利用は不可**。MapTilerキーの設定が必要 |

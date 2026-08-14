@@ -2,3 +2,5 @@
 requests>=2.32
 python-dotenv>=1.0
 google-genai>=1.0
+# DATABASE_URL を設定したときだけ使う（未設定ならファイル出力のまま動く）
+psycopg[binary]>=3.1

@@ -27,15 +27,15 @@ cd web && npm install && cp .env.example .env.local && npm run dev
 図はリポジトリルートの [README](../README.md#アーキテクチャ) を参照してください。
 
 ```
-[X API] [IG Graph API] → [Gemini解析バッチ] → [Supabase] → DataSource → aggregate() → API Route → UI
+[X API] [IG Graph API] → [Gemini解析バッチ] → [Neon] → DataSource → aggregate() → API Route → UI
 ```
 
 UIはSNSのAPIを直接呼ばず、**常に「解析済みの結果」だけを見る**。この分離により、収集基盤の実装が終わるまでフロントを完成させられます。
 
 ## 実データへの差し替え手順
 
-1. `src/lib/data/supabase.ts` の `SupabaseDataSource` を実装する
-2. `.env.local` に Supabase の接続情報（`NEXT_PUBLIC_SUPABASE_URL` / `_ANON_KEY`）を設定する
+1. `src/lib/data/neon.ts` の `NeonDataSource` を実装する
+2. `.env.local` に `DATABASE_URL`（Neon の **pooled** 接続文字列）を設定する
 
 **切り替えスイッチはありません。接続情報が揃った時点で自動的に実データへ切り替わります。**
 `DataSource` interface（`src/lib/data/source.ts`）を満たしていれば、**UI側の変更は不要**です。
@@ -113,10 +113,10 @@ cd web && npm run push:keys
 
 ## 未実装（今後）
 
-- Supabase 実装（`src/lib/data/supabase.ts`）。認証も Supabase Auth へ移せる
+- Neon 実装（`src/lib/data/neon.ts`）。**認証は自前実装のまま**（不変条件⑥c）
 - 現在地からの距離表示（PostGIS の `ST_DWithin` 導入後）
 - パスワード再設定
 
-> ⚠️ モックの入力データとアカウントはメモリ上に保持しているため、**開発サーバーを再起動すると消えます**。Supabase実装までの暫定措置です。
+> ⚠️ モックの入力データとアカウントはメモリ上に保持しているため、**開発サーバーを再起動すると消えます**。Neon実装までの暫定措置です。
 > なお開発サーバーでは Route Handler と Server Component がモジュールを別インスタンスとして読み込むことがあるため、
 > これらのストアは `globalThis` に載せています（載せないと書き込みが画面に反映されません）。

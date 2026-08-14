@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { rateLimited, route } from "@/lib/api";
+
 import { getDataSource } from "@/lib/data";
 import {
   checkSignupCode,
@@ -20,11 +22,15 @@ import {
 const MIN_PASSWORD_LENGTH = 8;
 
 /** 招待コードが必要かをログイン画面に伝える */
-export async function GET() {
+export const GET = route(async () => {
   return NextResponse.json({ signupCodeRequired: signupCodeRequired() });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = route(async (request: Request) => {
+  // 管理画面は権限が強い。一般ユーザーより厳しく絞る
+  const limited = rateLimited(request, "admin-auth", { limit: 5, windowSec: 600 });
+  if (limited) return limited;
+
   const body = (await request.json()) as {
     action?: "login" | "register" | "logout";
     email?: string;
@@ -82,4 +88,4 @@ export async function POST(request: Request) {
 
   await createSession("admin", operator.id);
   return NextResponse.json({ ok: true, operatorId: operator.id });
-}
+});

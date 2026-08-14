@@ -13,12 +13,12 @@ import type {
  *
  * ★ 実データへの差し替えは、この interface の実装を増やすだけで済む。
  *   - 現在  : MockDataSource（mock.ts）
- *   - 承認後: SupabaseDataSource（supabase.ts）
+ *   - 承認後: NeonDataSource（neon.ts）
  *
  * X API / Instagram Graph API / Gemini はいずれもこの層より外側（バッチ処理）に
  * 存在し、UI からは直接呼ばない。UIが見るのは常に「解析済みの結果」だけ。
  *
- *   [X API / IG Graph API] → [Gemini解析バッチ] → [Supabase] → DataSource → UI
+ *   [X API / IG Graph API] → [Gemini解析バッチ] → [Neon] → DataSource → UI
  */
 export interface DataSource {
   /** 表示対象の店舗マスター */
@@ -43,6 +43,24 @@ export interface DataSource {
   findUserById(id: string): Promise<User | null>;
 
   createUser(input: Omit<User, "id" | "createdAt">): Promise<User>;
+
+  /** パスワードを差し替える。再設定トークンの検証を通った後にのみ呼ぶ */
+  updateUserPassword(userId: string, passwordHash: string): Promise<void>;
+
+  /** Stripe の顧客IDから引く。Webhook が購読と利用者を突き合わせるのに使う */
+  findUserByStripeCustomerId(customerId: string): Promise<User | null>;
+
+  /**
+   * プレミアムの契約状態を更新する。
+   *
+   * ⚠️ 呼び出してよいのは **Stripe Webhook の署名検証を通った処理だけ**。
+   *   ここを一般のRoute Handlerから叩けるようにすると、課金せずに
+   *   プレミアムを有効化できてしまう。
+   */
+  setUserPremium(
+    userId: string,
+    input: { premiumUntil: string | null; stripeCustomerId?: string | null },
+  ): Promise<void>;
 
   /** お気に入り店舗ID。未ログイン時はそもそも呼ばない */
   listFavorites(userId: string): Promise<string[]>;

@@ -9,8 +9,8 @@ Webアプリが読める形式（AnalyzedPost[]）で書き出す。
               ↓ out/analyzed-*.json
     [ Webアプリ ]                 DataSource → aggregate() → UI
 
-本番ではこれを5〜15分間隔のCronで回し、出力をSupabaseへ書き込む。
-現状はファイル出力までを担当する。
+本番ではこれを Cloud Run Jobs + Cloud Scheduler で回す。
+DATABASE_URL があれば Neon へ書き込み、無ければファイル出力だけを行う。
 
 使い方:
     # 収集済みファイルを解析する
@@ -37,6 +37,7 @@ import requests
 from google import genai
 from google.genai import types
 
+import store
 from common import OUT_DIR, env, has, jpy, load_sample_posts, mock_notice, save_json, table
 from schema import SYSTEM_PROMPT, Analysis, to_camel
 
@@ -84,12 +85,25 @@ def normalize(text: str) -> str:
     return text
 
 
+# 包含率を使うのに必要な、正規化後の最小文字数。
+#
+# ⚠️ これが無いと「渋谷」のような短い手がかりが包含率1.0になり、
+#   たまたま住所に「渋谷」を含む店舗へ誤ってプロットされる。
+#   誤った店舗に出すのは、情報が無いことより有害（テストで固定済み）。
+MIN_COVERAGE_LEN = 6
+
+
 def coverage(needle: str, haystack: str) -> float:
     """needle の2-gram が haystack にどれだけ含まれるか（0.0〜1.0）。
 
     「〇〇駅前のローソン」のように余計な語が混ざる表記でも、
     店舗名側に含まれる部分の割合で測れるため、単純な類似度より頑健。
+
+    ただし短い needle は無条件に高得点になってしまうため、
+    一定の長さが無ければ 0 を返して全体類似度の判断に委ねる。
     """
+    if len(needle) < MIN_COVERAGE_LEN:
+        return 0.0
     grams = [needle[i : i + 2] for i in range(len(needle) - 1)]
     if not grams:
         return 0.0
@@ -397,7 +411,13 @@ def main() -> None:
     out = save_json(f"analyzed-{args.title_id}", analyzed)
     print(f"\n→ {out}")
     print("  このファイルは web 側の AnalyzedPost[] と同じ形式です。")
-    print("  Supabase実装後は、この内容をそのままDBへ書き込みます。")
+
+    # DATABASE_URL があればDBにも書く。無ければファイル出力のまま
+    written = store.write(analyzed, args.title_id)
+    if written is None:
+        print("  DATABASE_URL を設定すると、この内容がDBにも保存されます。")
+    else:
+        print(f"→ データベースへ {written} 件を保存しました。")
 
 
 if __name__ == "__main__":

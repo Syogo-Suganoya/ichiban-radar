@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { route } from "@/lib/api";
+
 import { getDataSource } from "@/lib/data";
 import { getSessionOperatorId } from "@/lib/auth";
 import { notifyIfCritical } from "@/lib/push";
@@ -9,7 +11,7 @@ import type { TopPrizeState } from "@/lib/types";
 const VALID_TOP_PRIZE: TopPrizeState[] = ["AVAILABLE", "GONE", "UNKNOWN"];
 
 /** 指定タイトルの入力済みレポートを返す（タイトル切り替え時の再読込用） */
-export async function GET(request: Request) {
+export const GET = route(async (request: Request) => {
   if (!(await getSessionOperatorId())) {
     return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });
   }
@@ -20,7 +22,7 @@ export async function GET(request: Request) {
   }
   const reports = await getDataSource().listVerifiedReports(titleId);
   return NextResponse.json({ reports });
-}
+});
 
 /**
  * オペレーターの入力を保存する。
@@ -31,7 +33,7 @@ export async function GET(request: Request) {
  * オペレーターIDはリクエストボディではなく**セッションから取る**。
  * 他人のIDで入力できてしまうと、入力ログの追跡可能性が崩れるため。
  */
-export async function POST(request: Request) {
+export const POST = route(async (request: Request) => {
   const operatorId = await getSessionOperatorId();
   if (!operatorId) {
     return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });
@@ -88,4 +90,4 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ report });
-}
+});

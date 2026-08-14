@@ -13,7 +13,8 @@ import { cookies } from "next/headers";
  *
  * パスワードは scrypt でハッシュ化し、セッションはHMAC署名付きの
  * httpOnly Cookie で保持する。外部の認証基盤に依存させていないのは、
- * Supabase 実装時にそのまま Supabase Auth へ移せるようにするため。
+ * ⚠️ マネージドな認証基盤へは移さない。一般ユーザーと管理画面で
+ *   セッションを分ける設計（CONTRIBUTING 不変条件⑥c）を維持するため。
  */
 
 export type SessionKind = "user" | "admin";
@@ -119,3 +120,58 @@ export async function getSessionId(kind: SessionKind): Promise<string | null> {
 
 export const getSessionOperatorId = () => getSessionId("admin");
 export const getSessionUserId = () => getSessionId("user");
+
+// ---------- パスワード再設定 ----------
+
+/** 再設定リンクの有効期間。長いほど漏洩時の危険が増える */
+const RESET_TOKEN_MINUTES = 30;
+
+/**
+ * 再設定トークンを作る。
+ *
+ * ★ **DBにトークンを保存しない。** 署名の材料に「現在のパスワードハッシュ」を
+ *   混ぜてあるので、一度パスワードを変えると**同じトークンは自動的に無効**になる。
+ *   使い捨ての管理テーブルを持たずに一回性を実現できる。
+ *
+ * ⚠️ 署名の名前空間はセッションと別（"reset"）。
+ *   セッションCookieを再設定トークンとして使い回せないようにするため。
+ */
+export function createResetToken(userId: string, passwordHash: string): string {
+  const expires = Date.now() + RESET_TOKEN_MINUTES * 60_000;
+  const payload = `${userId}.${expires}`;
+  const signature = createHmac("sha256", secret())
+    .update(`reset:${payload}:${passwordHash}`)
+    .digest("hex");
+  return `${Buffer.from(payload).toString("base64url")}.${signature}`;
+}
+
+/** 検証して userId を返す。無効・期限切れなら null */
+export function verifyResetToken(token: string, lookup: (userId: string) => string | null): string | null {
+  const [encoded, signature] = token.split(".");
+  if (!encoded || !signature) return null;
+
+  let payload: string;
+  try {
+    payload = Buffer.from(encoded, "base64url").toString();
+  } catch {
+    return null;
+  }
+
+  const [userId, expires] = payload.split(".");
+  if (!userId || !expires) return null;
+  if (Number(expires) < Date.now()) return null;
+
+  const passwordHash = lookup(userId);
+  if (!passwordHash) return null;
+
+  const expected = createHmac("sha256", secret())
+    .update(`reset:${payload}:${passwordHash}`)
+    .digest("hex");
+
+  // 比較にかかる時間から署名を推測されないようにする
+  const a = Buffer.from(signature);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+
+  return userId;
+}

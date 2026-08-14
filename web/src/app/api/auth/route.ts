@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { rateLimited, route } from "@/lib/api";
+
 import { getDataSource } from "@/lib/data";
 import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
+import { isPremium } from "@/lib/billing";
 
 /**
  * 一般ユーザーの認証。
@@ -14,7 +17,7 @@ import { createSession, destroySession, hashPassword, verifyPassword } from "@/l
 
 const MIN_PASSWORD_LENGTH = 8;
 
-export async function POST(request: Request) {
+export const POST = route(async (request: Request) => {
   const body = (await request.json()) as {
     action?: "login" | "register" | "logout";
     email?: string;
@@ -23,6 +26,12 @@ export async function POST(request: Request) {
   };
 
   const source = getDataSource();
+
+  // ログアウト以外は総当たりの的になる
+  if (body.action !== "logout") {
+    const limited = rateLimited(request, "auth", { limit: 10, windowSec: 600 });
+    if (limited) return limited;
+  }
 
   if (body.action === "logout") {
     await destroySession("user");
@@ -54,9 +63,16 @@ export async function POST(request: Request) {
       email,
       displayName: body.displayName?.trim() || email.split("@")[0],
       passwordHash: hashPassword(password),
+      premiumUntil: null,
+      stripeCustomerId: null,
     });
     await createSession("user", user.id);
-    return NextResponse.json({ ok: true, displayName: user.displayName, favorites: [] });
+    return NextResponse.json({
+      ok: true,
+      displayName: user.displayName,
+      favorites: [],
+      premium: isPremium(user),
+    });
   }
 
   // --- ログイン ---
@@ -74,5 +90,6 @@ export async function POST(request: Request) {
     ok: true,
     displayName: user.displayName,
     favorites: await source.listFavorites(user.id),
+    premium: isPremium(user),
   });
-}
+});

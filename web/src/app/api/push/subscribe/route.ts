@@ -1,24 +1,31 @@
 import { NextResponse } from "next/server";
 
+import { route } from "@/lib/api";
+
 import { getDataSource } from "@/lib/data";
 import { getSessionUserId } from "@/lib/auth";
+import { isPremium } from "@/lib/billing";
 import { isPushConfigured } from "@/lib/push";
 
 /** VAPID公開鍵を返す。未設定なら通知機能を無効として扱う */
-export async function GET() {
+export const GET = route(async () => {
   return NextResponse.json({
     configured: isPushConfigured(),
     publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null,
   });
-}
+});
 
 /**
- * プッシュ購読を保存する。
+ * プッシュ購読を保存する。**プレミアムプランの機能**。
  * 通知対象はお気に入り店舗なので、購読はユーザーに紐づける（＝ログイン必須）。
  */
-export async function POST(request: Request) {
+export const POST = route(async (request: Request) => {
   const userId = await getSessionUserId();
   if (!userId) return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });
+
+  if (!isPremium(await getDataSource().findUserById(userId))) {
+    return NextResponse.json({ error: "プレミアムプランのご契約が必要です" }, { status: 402 });
+  }
 
   if (!isPushConfigured()) {
     return NextResponse.json(
@@ -47,13 +54,13 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json({ ok: true });
-}
+});
 
 /** 購読を解除する */
-export async function DELETE(request: Request) {
+export const DELETE = route(async (request: Request) => {
   const { endpoint } = (await request.json()) as { endpoint?: string };
   if (!endpoint) return NextResponse.json({ error: "endpoint は必須です" }, { status: 400 });
 
   await getDataSource().deletePushSubscription(endpoint);
   return NextResponse.json({ ok: true });
-}
+});
