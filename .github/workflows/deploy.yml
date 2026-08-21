@@ -59,6 +59,15 @@ jobs:
     needs: verify
     if: vars.GCP_PROJECT_ID != ''
     runs-on: ubuntu-latest
+    # GitHubの Environments に公開先を記録する。
+    # リポジトリのトップと各コミットから、いま本番に何が乗っているかを辿れる。
+    #
+    # ⚠️ URLはベタ書き。Secretを参照すると画面上で *** に伏せられて用をなさない。
+    #    公開URLなので隠す意味もない。
+    #    サービスを作り直すとURLが変わるので、そのときはここも直すこと。
+    environment:
+      name: production
+      url: https://kuji-radar-850436172419.asia-northeast1.run.app
     permissions:
       contents: read
       # Workload Identity 連携に必須
