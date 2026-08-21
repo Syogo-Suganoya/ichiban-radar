@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -47,10 +47,32 @@ def mock_notice(what: str, key: str) -> None:
 
 
 def load_sample_posts(source: str) -> list:
-    """モック用のサンプル投稿を読む。"""
+    """モック用のサンプル投稿を読む。
+
+    ★ **投稿日時を実行時刻基準にずらす。**
+      集計側は12時間より古い投稿を捨てる（aggregate.ts の FRESH_WINDOW_HOURS）。
+      ファイルの日付は固定なので、そのまま入れると全件が古すぎて
+      「DBには9件あるのに地図は全部グレー」という、原因の分かりにくい状態になる。
+
+      投稿どうしの時間差は保ち、いちばん新しいものが10分前になるよう平行移動する。
+      在庫の集計は「複数の投稿がどれだけ近い時刻に一致しているか」を見るため、
+      間隔を潰すと確信度の計算が変わってしまう。
+
+    ⚠️ ずらすのはサンプル投稿だけ。実APIから取得した投稿の日時は絶対に触らない。
+    """
     path = ROOT / "data" / "sample_posts.json"
-    posts = json.loads(path.read_text(encoding="utf-8"))
-    return [p for p in posts if p["source"] == source]
+    posts = [p for p in json.loads(path.read_text(encoding="utf-8")) if p["source"] == source]
+    if not posts:
+        return posts
+
+    def parsed(post: dict) -> datetime:
+        return datetime.fromisoformat(post["postedAt"].replace("Z", "+00:00"))
+
+    newest = max(parsed(p) for p in posts)
+    shift = (datetime.now(timezone.utc) - timedelta(minutes=10)) - newest
+    for post in posts:
+        post["postedAt"] = (parsed(post) + shift).isoformat().replace("+00:00", "Z")
+    return posts
 
 
 def usd_jpy() -> float:

@@ -45,12 +45,21 @@ def write(analyzed: list, title_id: str) -> Optional[int]:
                 a = item["analysis"]
 
                 # 同じ投稿を再解析しても重複させない。
-                # 本文は編集されうるので取り込み時の内容で更新する
+                # 取り込み時の内容で全項目を更新する。
+                #
+                # ⚠️ 以前は text だけを更新していた。実投稿では posted_at が
+                #   変わらないので害は無いが、サンプル投稿の日時をずらして
+                #   入れ直しても古い日時が残り、集計側の鮮度判定（12時間）で
+                #   全件が捨てられる、という追いにくい状態になっていた。
                 cur.execute(
                     """
                     INSERT INTO posts_raw (id, source, text, permalink, image_url, posted_at)
                     VALUES (%s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (id) DO UPDATE SET text = EXCLUDED.text
+                    ON CONFLICT (id) DO UPDATE SET
+                      text = EXCLUDED.text,
+                      permalink = EXCLUDED.permalink,
+                      image_url = EXCLUDED.image_url,
+                      posted_at = EXCLUDED.posted_at
                     """,
                     (
                         post["id"],

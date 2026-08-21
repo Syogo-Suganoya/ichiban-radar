@@ -21,7 +21,7 @@ services:
     # 対話実行が中心なので常駐させない
     profiles: ["cli"]
 
-  # PostGIS。Supabase 実装前のローカル検証用
+  # PostGIS。本番の Neon と同じスキーマをローカルで検証するためのもの
   db:
     image: postgis/postgis:16-3.4
     environment:
