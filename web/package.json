@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "push:keys": "web-push generate-vapid-keys",
+    "icons": "node scripts/gen-icons.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -31,6 +32,7 @@
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
+    "sharp": "^0.35.3",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.10"
