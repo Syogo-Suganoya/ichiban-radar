@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
-import styles from "./lp.module.css";
+import styles from "./landing.module.css";
 
 export const metadata: Metadata = {
   title: "くじレーダー | 一番くじの在庫が、家を出る前に分かる",
@@ -76,7 +76,7 @@ export default function LandingPage() {
               開発中
             </span>
             <Link
-              href="/"
+              href="/map"
               className="ml-auto rounded-full px-3.5 py-1.5 text-[12.5px] font-bold transition hover:opacity-80"
               style={{ background: "#fff", color: "var(--night)" }}
             >
@@ -155,7 +155,7 @@ export default function LandingPage() {
 
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Link
-                href="/"
+                href="/map"
                 className="rounded-lg px-5 py-3 text-[14px] font-bold transition hover:opacity-90"
                 style={{ background: "#fff", color: "var(--night)" }}
               >
@@ -165,6 +165,16 @@ export default function LandingPage() {
                 クラウドファンディング準備中
               </span>
             </div>
+
+            {/* ⚠️ ボタンの直下に置く。押した先が本物の在庫マップだと
+                思わせないことのほうが、CTAの見栄えより優先される */}
+            <p
+              className="mt-4 max-w-xl text-[12px] leading-relaxed"
+              style={{ color: "#8b93a3" }}
+            >
+              デモで表示される在庫はすべてサンプルデータです。実際の店舗の在庫では
+              ありません。上の記録も、SNSの投稿をもとに構成したイメージです。
+            </p>
           </div>
         </div>
       </header>
@@ -357,7 +367,7 @@ export default function LandingPage() {
             その手前にある「探して回る徒労」を、技術で消します。
           </p>
           <Link
-            href="/"
+            href="/map"
             className="mt-8 inline-block rounded-lg px-6 py-3.5 text-[14px] font-bold text-white transition hover:opacity-90"
             style={{ background: "var(--ink)" }}
           >
@@ -392,7 +402,11 @@ export default function LandingPage() {
           </p>
           <p>※「一番くじ」は株式会社BANDAI SPIRITS様の登録商標です。</p>
           <p>
-            ※ 表示する在庫情報は推測であり、実際の在庫を保証するものではありません。店舗様へのお問い合わせはご遠慮ください。
+            ※ <b style={{ color: "var(--ink)" }}>現在は開発中のデモです。</b>
+            地図に表示される在庫はすべてサンプルデータで、実在する店舗の在庫を示すものではありません。
+          </p>
+          <p>
+            ※ 正式公開後も、表示する在庫情報は推測であり、実際の在庫を保証するものではありません。店舗様へのお問い合わせはご遠慮ください。
           </p>
           <p>※ データ取得は公式APIのみを使用しています。</p>
           <p className="flex flex-wrap gap-x-4 gap-y-1 pt-2">

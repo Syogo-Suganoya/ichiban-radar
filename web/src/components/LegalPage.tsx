@@ -22,7 +22,7 @@ interface Props {
 export default function LegalPage({ title, updatedAt, notice, children }: Props) {
   return (
     <main className="mx-auto max-w-3xl px-5 py-12 sm:px-8">
-      <Link href="/" className="text-[13px] text-neutral-500 underline underline-offset-2">
+      <Link href="/map" className="text-[13px] text-neutral-500 underline underline-offset-2">
         ← くじレーダーに戻る
       </Link>
 

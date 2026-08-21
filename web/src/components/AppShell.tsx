@@ -33,6 +33,8 @@ interface Props {
   initialTitleId: string;
   initialSignals: InventorySignal[];
   mockMode: boolean;
+  /** サンプルデータで動かしているか。true なら地図の上に警告を出す */
+  demoMode: boolean;
   initialPremium: boolean;
   paymentsEnabled: boolean;
   /** ログイン中なら表示名。未ログインなら null */
@@ -46,6 +48,7 @@ export default function AppShell({
   initialTitleId,
   initialSignals,
   mockMode,
+  demoMode,
   initialPremium,
   paymentsEnabled,
   initialDisplayName,
@@ -182,6 +185,16 @@ export default function AppShell({
 
   return (
     <main className="mx-auto flex h-dvh max-w-[520px] flex-col bg-white">
+      {/* ⚠️ 閉じられる作りにしないこと。一度閉じたあとの画面は
+          「本物の在庫マップ」と見分けが付かなくなる。
+          地図の高さを削ってでも、常に出し続ける */}
+      {demoMode && (
+        <p className="flex items-center justify-center gap-1.5 bg-amber-400 px-3 py-1.5 text-center text-[11px] font-bold leading-tight text-amber-950">
+          <span aria-hidden>⚠️</span>
+          デモ版です。表示中の在庫は<u>サンプルデータ</u>で、実際の店舗の在庫ではありません。
+        </p>
+      )}
+
       <header className="flex items-center gap-2.5 border-b border-neutral-200 px-4 py-2.5">
         <span className="text-[15px] font-bold tracking-tight">
           くじ<span className="text-blue-600">レーダー</span>

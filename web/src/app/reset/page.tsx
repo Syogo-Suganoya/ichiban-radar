@@ -53,7 +53,7 @@ function ResetForm() {
           パスワードを変更しました。新しいパスワードでログインしてください。
         </p>
         <Link
-          href="/"
+          href="/map"
           className="mt-5 inline-block rounded-lg bg-neutral-900 px-5 py-3 text-[14px] font-bold text-white"
         >
           くじレーダーを開く

@@ -87,7 +87,7 @@ jobs:
         # タグに github.sha を使うのは、問題が起きたときに
         # 前のリビジョンへ即座に戻せるようにするため
         run: |
-          gcloud run deploy kuji-web \
+          gcloud run deploy kuji-radar \
             --image "${REGION}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${REPOSITORY}/web:${{ github.sha }}" \
             --region "${REGION}" \
             --quiet
@@ -95,11 +95,14 @@ jobs:
       - name: モックデータで起動していないか確認
         # ⚠️ DATABASE_URL の設定漏れは黙ってモックへフォールバックする。
         #    偽の在庫を配信していることに気づけないのが最悪なので、
-        #    デプロイのたびに機械に見張らせる
+        #    デプロイのたびに機械に見張らせる。
+        #
+        # ⚠️ 見るのは `/` ではなく `/map`。`/` はLPで、DBに繋がっていなくても
+        #    同じHTMLを返すため、ここを `/` にすると検査が素通りする
         run: |
-          URL=$(gcloud run services describe kuji-web --region "${REGION}" --format='value(status.url)')
+          URL=$(gcloud run services describe kuji-radar --region "${REGION}" --format='value(status.url)')
           echo "デプロイ先: $URL"
-          if curl -sf "$URL" | grep -q "モックデータ"; then
+          if curl -sf "$URL/map" | grep -q "モックデータ"; then
             echo "::error::本番がモックデータで起動しています。DATABASE_URL を確認してください。"
             exit 1
           fi
