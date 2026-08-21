@@ -136,9 +136,12 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v2
 
       - name: イメージをビルド
+        # ⚠️ --tag ではなく設定ファイル経由。理由は scripts/cloudbuild.yaml のコメント
         run: |
+          IMAGE="${REGION}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${REPOSITORY}/batch:${{ github.sha }}"
           gcloud builds submit ./scripts \
-            --tag "${REGION}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${REPOSITORY}/batch:${{ github.sha }}"
+            --config=scripts/cloudbuild.yaml \
+            --substitutions="_IMAGE=${IMAGE}"
 
       - name: ジョブを更新
         # ⚠️ ここでジョブを実行はしない。X APIは1件読むごとに課金されるため、

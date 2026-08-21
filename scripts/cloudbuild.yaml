@@ -1,0 +1,25 @@
+# 収集・解析バッチのイメージをビルドする。
+#
+# ⚠️ `gcloud builds submit --tag` を使わない理由は、Webアプリ側とは別。
+#   --tag は既定のGCSログバケットへ書き込み、gcloud がそのログを
+#   ストリーミングするのにプロジェクトのViewer権限を要求する。
+#   デプロイ用サービスアカウントにViewerを与えるのは広すぎるので、
+#   ログの出力先を Cloud Logging に寄せて回避する。
+#   （ビルド自体は成功しているのに、ログが読めないという理由だけで
+#     ジョブが失敗する、という分かりにくい壊れ方をしていた）
+
+substitutions:
+  _IMAGE: ""
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --tag=${_IMAGE}
+      - .
+
+images:
+  - ${_IMAGE}
+
+options:
+  logging: CLOUD_LOGGING_ONLY
