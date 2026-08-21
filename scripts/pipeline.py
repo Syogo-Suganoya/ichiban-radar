@@ -213,7 +213,7 @@ def analyze(client: genai.Client, model: str, post: dict, use_vision: bool) -> t
 """残り本数の表記ゆれ。キーキャップ絵文字（1️⃣7️⃣）で書く店舗が多い。
 
 `1️⃣` は U+0031 U+FE0F U+20E3 であって文字コード上の `1` ではないため、
-正規化しないと残数の抽出が丸ごと落ちる（調査書 §0-2 ③）。
+正規化しないと残数の抽出が丸ごと落ちる。
 """
 KEYCAP = {f"{d}️⃣": str(d) for d in range(10)}
 
@@ -263,7 +263,7 @@ def mock_analyze(post: dict) -> Analysis:
     is_relevant = status != "UNKNOWN" and not re.search(r"買取|お迎え|交換|譲渡", text)
 
     # 店舗名らしき部分をハッシュタグと本文から拾う。
-    # 店舗アカウントは #ローソン渋谷道玄坂店 のように自ら書く（調査書 §0-2 ④）
+    # 店舗アカウントは #ローソン渋谷道玄坂店 のように自ら書く
     store_hint = None
     tag = re.search(r"#([^\s#]*(?:ローソン|セブン|ファミリーマート|ファミマ)[^\s#]*)", text)
     if tag:

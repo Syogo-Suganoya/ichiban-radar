@@ -19,8 +19,15 @@ const SHIBUYA: [number, number] = [139.7016, 35.658];
  * 地図スタイル。
  *
  * MapTilerのキーがあればベクタータイルを使い、無ければOSMのラスタにフォールバックする。
- * ⚠️ OSMの公式タイルは本番利用が利用規約で認められていない（開発時のみ）。
- *    公開前に NEXT_PUBLIC_MAPTILER_KEY を必ず設定すること。
+ *
+ * ⚠️ OSM公式タイル（tile.openstreetmap.org）は寄付で運営される無保証のサービス。
+ *    禁止されているのは「商用利用」ではなく**重い利用**で、規模が小さいうちは
+ *    ポリシーの範囲内にある。ただし提供はbest-effortで、
+ *    **予告なくブロックされても文句は言えない**。
+ *
+ *    在庫マップにとって地図が出ないことは致命的なので、公開して
+ *    アクセスが読めなくなる前に NEXT_PUBLIC_MAPTILER_KEY を設定すること。
+ *    規約違反を避けるためではなく、ある朝いきなり壊れるのを避けるため。
  */
 function buildStyle(): string | StyleSpecification {
   const key = process.env.NEXT_PUBLIC_MAPTILER_KEY;

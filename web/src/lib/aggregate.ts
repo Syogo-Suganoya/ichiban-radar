@@ -17,7 +17,7 @@ import type {
   VerifiedReport,
 } from "./types";
 
-/** SNS推測の有効期間。これを過ぎたら「情報不足」に落とす（企画書の定義） */
+/** SNS推測の有効期間。これを過ぎたら「情報不足」に落とす */
 export const FRESH_WINDOW_HOURS = 12;
 
 /** 電話確認（確定情報）の有効期間。発売日は在庫が速く動くため短くとる */

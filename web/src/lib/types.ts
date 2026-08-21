@@ -6,7 +6,7 @@
  * 片方を変更したらもう片方も必ず追随させる（CONTRIBUTING.md 不変条件①）。
  */
 
-/** 在庫ステータス。企画書のピン色分けに対応する */
+/** 在庫ステータス。地図のピンの色分けに対応する */
 export type StockStatus = "SOLD_OUT" | "LOW_STOCK" | "IN_STOCK" | "UNKNOWN";
 
 /**
@@ -75,8 +75,8 @@ export interface AnalyzedPost {
  * 認定員による電話確認の結果（確定情報）。
  *
  * 認定員が入力するのは「残り本数」と「上位賞の有無」だけで、
- * ステータスは入力させない。判断のブレをなくし、入力の手数を減らすため
- * （事業計画書 3-5）。ステータスは lib/stock.ts の deriveStatus() で導出する。
+ * ステータスは入力させない。判断のブレをなくし、入力の手数を減らすため。
+ * ステータスは lib/stock.ts の deriveStatus() で導出する。
  */
 export interface VerifiedReport {
   id: string;
