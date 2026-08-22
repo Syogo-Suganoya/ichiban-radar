@@ -10,7 +10,10 @@
     "push:keys": "web-push generate-vapid-keys",
     "icons": "node scripts/gen-icons.mjs",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "maplibre:worker": "node scripts/copy-maplibre-worker.mjs",
+    "prebuild": "npm run maplibre:worker",
+    "predev": "npm run maplibre:worker"
   },
   "dependencies": {
     "@fortawesome/free-brands-svg-icons": "^7.3.1",

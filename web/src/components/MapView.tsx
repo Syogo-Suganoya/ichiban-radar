@@ -6,6 +6,7 @@ import {
   Map as MlMap,
   Marker,
   NavigationControl,
+  setWorkerUrl,
   type StyleSpecification,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -14,6 +15,24 @@ import { STATUS_META } from "@/lib/status";
 import type { InventorySignal, Store } from "@/lib/types";
 
 const SHIBUYA: [number, number] = [139.7016, 35.658];
+
+/**
+ * ワーカーの場所を明示する。
+ *
+ * ★ **これを外すと地図に道路も地名も出なくなる。**
+ *   MapLibre の既定は `new URL("./maplibre-gl-worker.mjs", import.meta.url)` だが、
+ *   Turbopack がバンドルすると import.meta.url がチャンクのURLになり、
+ *   存在しない `/_next/static/chunks/...` を指す。404のHTMLが返り、
+ *   モジュールワーカーとして読めずに落ちる。
+ *
+ *   ワーカーが死ぬとベクタータイルの解析が止まり、背景色だけの地図になる。
+ *   コンソールには「non-JavaScript MIME type of "text/html"」としか出ないため、
+ *   地図の不具合だと気づきにくい。
+ *
+ * ⚠️ 実体は `npm run maplibre:worker` が node_modules から複製する。
+ *    パスを変えるときは scripts/copy-maplibre-worker.mjs も直すこと。
+ */
+setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
 
 /**
  * 地図スタイル。

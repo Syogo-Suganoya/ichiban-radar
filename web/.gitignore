@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# npm run maplibre:worker が node_modules から複製する。
+# 版ずれを避けるためコミットしない（build/dev の前に自動生成される）
+/public/maplibre/
