@@ -1,10 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 
 import AuthSheet from "./AuthSheet";
 import StoreSheet from "./StoreSheet";
+import StoreRail from "./StoreRail";
 import { STATUS_META } from "@/lib/status";
 import { getExistingSubscription, isPushSupported, subscribe, unsubscribe } from "@/lib/push-client";
 import type { InventorySignal, Store, Title } from "@/lib/types";
@@ -184,7 +186,20 @@ export default function AppShell({
   }, [signals]);
 
   return (
-    <main className="mx-auto flex h-dvh max-w-[520px] flex-col bg-white">
+    /* ⚠️ 中央の列は 520px のまま触らない。地図・シート・通知の位置はすべて
+       この幅を前提にしている。広い画面では**両脇に別の要素を足すだけ**にする。 */
+    <div className="mx-auto flex h-dvh w-full max-w-[1360px] justify-center gap-5 xl:px-5">
+      {/* 画面が広いときだけ出る左右の袖。1279px以下では存在しない */}
+      <aside className="hidden w-[260px] shrink-0 flex-col overflow-y-auto py-4 xl:flex">
+        <StoreRail
+          stores={visible.stores}
+          signals={visible.signals}
+          selectedStoreId={selectedStoreId}
+          onSelect={setSelectedStoreId}
+        />
+      </aside>
+
+      <main className="flex h-dvh w-full max-w-[520px] flex-col bg-white">
       {/* ⚠️ 閉じられる作りにしないこと。一度閉じたあとの画面は
           「本物の在庫マップ」と見分けが付かなくなる。
           地図の高さを削ってでも、常に出し続ける */}
@@ -370,7 +385,9 @@ export default function AppShell({
         )}
       </div>
 
-      <div className="border-t border-neutral-200 bg-[repeating-linear-gradient(135deg,#fafbfc,#fafbfc_9px,#f2f4f6_9px,#f2f4f6_18px)] py-3 text-center text-[11px] text-neutral-400">
+      {/* 広告は袖に出せるときは袖へ寄せる。
+          地図の高さは行き先の判断に直結するので、削る優先度がいちばん低い */}
+      <div className="border-t border-neutral-200 bg-[repeating-linear-gradient(135deg,#fafbfc,#fafbfc_9px,#f2f4f6_9px,#f2f4f6_18px)] py-3 text-center text-[11px] text-neutral-400 xl:hidden">
         <b className="block text-xs text-neutral-500">広告</b>
         無料プランではここに広告が表示されます
       </div>
@@ -397,6 +414,46 @@ export default function AppShell({
           一番くじ公式サイト ↗
         </a>
       </footer>
-    </main>
+      </main>
+
+      <aside className="hidden w-[260px] shrink-0 flex-col gap-3 overflow-y-auto py-4 xl:flex">
+        <section className="rounded-xl border border-neutral-200 bg-white p-4">
+          <h2 className="text-[13px] font-bold">この地図の読み方</h2>
+          <ul className="mt-2.5 flex flex-col gap-1.5 text-[11.5px] leading-relaxed text-neutral-600">
+            <li>ピンの色が在庫、🏆 が上位賞の残り</li>
+            <li>1件の投稿だけでは表示しません</li>
+            <li>12時間で「情報不足」に戻ります</li>
+          </ul>
+          <Link
+            href="/"
+            className="mt-3 inline-block text-[11.5px] font-bold text-blue-600 underline underline-offset-2 transition hover:text-blue-800"
+          >
+            くじレーダーについて →
+          </Link>
+        </section>
+
+        {!premium && (
+          <section className="rounded-xl border border-neutral-200 bg-white p-4">
+            <h2 className="text-[13px] font-bold">お気に入りと通知</h2>
+            <p className="mt-2 text-[11.5px] leading-relaxed text-neutral-600">
+              狙っている店を登録しておくと、在庫が急に減ったときに通知が届きます。
+            </p>
+            <button
+              type="button"
+              onClick={() => setAuthOpen(true)}
+              className="mt-3 w-full rounded-lg bg-neutral-900 px-3 py-2 text-[12px] font-bold text-white transition hover:opacity-90"
+            >
+              {signedIn ? "プランを見る" : "ログイン / 新規登録"}
+            </button>
+          </section>
+        )}
+
+        {/* ⚠️ 広告はいちばん下。上に置くと、在庫情報より先に目に入る */}
+        <div className="rounded-xl border border-neutral-200 bg-[repeating-linear-gradient(135deg,#fafbfc,#fafbfc_9px,#f2f4f6_9px,#f2f4f6_18px)] px-3 py-10 text-center text-[11px] text-neutral-400">
+          <b className="block text-xs text-neutral-500">広告</b>
+          無料プランではここに広告が表示されます
+        </div>
+      </aside>
+    </div>
   );
 }
