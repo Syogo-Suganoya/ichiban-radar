@@ -141,7 +141,17 @@ export default function MapView({
     m.on("click", () => onDeselectRef.current());
     map.current = m;
 
+    // ⚠️ コンテナのサイズ変化に追随させる。
+    //   MapLibre は初期化時の寸法を握ったままで、あとから広がっても
+    //   自分では気づかない。高さが確定する前に初期化されると
+    //   既定の 400×300 のまま描画され、**ピンだけがコンテナ基準で
+    //   配置されるため地図の外に落ちる**。
+    //   デモ警告の帯や広告枠のように、あとから高さが変わる要素があると起きる。
+    const observer = new ResizeObserver(() => m.resize());
+    observer.observe(container.current);
+
     return () => {
+      observer.disconnect();
       map.current?.remove();
       map.current = null;
     };
