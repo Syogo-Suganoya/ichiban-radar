@@ -17,11 +17,20 @@ type Mode = "login" | "register" | "reset";
 interface Props {
   /** 決済が有効か。無効ならβ版の案内を出す */
   paymentsEnabled: boolean;
+  /**
+   * メール送信基盤が設定されているか。
+   *
+   * ⚠️ false のあいだ「パスワードをお忘れですか？」を出さない。
+   *   再設定リンクはメールでしか渡せないため、送信基盤が無い状態で導線だけ
+   *   見せると、**送信したつもりで永久に届かない**という最悪の体験になる。
+   *   無い機能は見せない（未ログイン時にお気に入りを出さないのと同じ）。
+   */
+  mailConfigured: boolean;
   onClose: () => void;
   onSignedIn: (displayName: string, favorites: string[], premium: boolean) => void;
 }
 
-export default function AuthSheet({ paymentsEnabled, onClose, onSignedIn }: Props) {
+export default function AuthSheet({ paymentsEnabled, mailConfigured, onClose, onSignedIn }: Props) {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -307,17 +316,19 @@ export default function AuthSheet({ paymentsEnabled, onClose, onSignedIn }: Prop
           </button>
 
           {mode !== "reset" ? (
-            <button
-              type="button"
-              onClick={() => {
-                setMode("reset");
-                setError(null);
-                setNotice(null);
-              }}
-              className="w-full cursor-pointer text-center text-[11.5px] text-neutral-500 underline underline-offset-2"
-            >
-              パスワードをお忘れですか？
-            </button>
+            mailConfigured && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("reset");
+                  setError(null);
+                  setNotice(null);
+                }}
+                className="w-full cursor-pointer text-center text-[11.5px] text-neutral-500 underline underline-offset-2"
+              >
+                パスワードをお忘れですか？
+              </button>
+            )
           ) : (
             <button
               type="button"

@@ -37,6 +37,8 @@ interface Props {
   mockMode: boolean;
   /** サンプルデータで動かしているか。true なら地図の上に警告を出す */
   demoMode: boolean;
+  /** メール送信基盤の有無。無ければパスワード再設定の導線を出さない */
+  mailConfigured: boolean;
   initialPremium: boolean;
   paymentsEnabled: boolean;
   /** ログイン中なら表示名。未ログインなら null */
@@ -51,6 +53,7 @@ export default function AppShell({
   initialSignals,
   mockMode,
   demoMode,
+  mailConfigured,
   initialPremium,
   paymentsEnabled,
   initialDisplayName,
@@ -367,6 +370,7 @@ export default function AppShell({
         {authOpen && (
           <AuthSheet
             paymentsEnabled={paymentsEnabled}
+            mailConfigured={mailConfigured}
             onClose={() => setAuthOpen(false)}
             onSignedIn={(name, favs, isPremium) => {
               setDisplayName(name);

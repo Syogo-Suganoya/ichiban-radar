@@ -3,6 +3,7 @@ import { getSessionUserId } from "@/lib/auth";
 import { isPaymentsEnabled, isPremium } from "@/lib/billing";
 import { getDataSource, isMockMode } from "@/lib/data";
 import { isDemoMode } from "@/lib/demo";
+import { isMailConfigured } from "@/lib/mail";
 import { loadSignals } from "@/lib/signals";
 
 // 在庫は刻々と変わるため常に最新を取得する
@@ -29,6 +30,7 @@ export default async function Page() {
       initialSignals={signals}
       mockMode={isMockMode()}
       demoMode={isDemoMode()}
+      mailConfigured={isMailConfigured()}
       initialDisplayName={user?.displayName ?? null}
       initialFavorites={favorites}
       initialPremium={premium}
