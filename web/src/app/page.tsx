@@ -4,9 +4,9 @@ import type { Metadata } from "next";
 import styles from "./landing.module.css";
 
 export const metadata: Metadata = {
-  title: "くじレーダー | 一番くじの在庫が、家を出る前に分かる",
+  title: "くじレーダー | 一番くじの在庫が、家を出る前に分かる（非公式）",
   description:
-    "SNSに流れている「完売してた」「残り3枚だった」をAIが読み取り、いま行くべき店だけを地図に出します。ハシゴの徒労をゼロに。",
+    "SNSに流れている「完売してた」「残り3枚だった」をAIが読み取り、いま行くべき店だけを地図に出します。ハシゴの徒労をゼロに。株式会社BANDAI SPIRITS様とは関係のない非公式サービスです。",
 };
 
 /** ヒーローの行脚ログ。発売日の朝に実際に起きていること */
@@ -408,12 +408,30 @@ export default function LandingPage() {
           <p>
             ※ 正式公開後も、表示する在庫情報は推測であり、実際の在庫を保証するものではありません。店舗様へのお問い合わせはご遠慮ください。
           </p>
+          {/* ⚠️ 誤った在庫表示は、その店舗の来客機会を奪う。免責文は利用者との間の
+              取り決めでしかなく、当事者でない店舗には及ばない。
+              **申し出をすぐ受けられる窓口を出しておくこと自体が緩和策になる。** */}
+          <p>
+            ※ 掲載中の店舗様へ：表示内容の訂正・掲載停止のご依頼は{" "}
+            <a
+              href="/legal/contact"
+              className="font-bold underline underline-offset-2 transition hover:opacity-70"
+              style={{ color: "var(--ink)" }}
+            >
+              お問い合わせ窓口
+            </a>{" "}
+            より承ります。ご連絡をいただき次第、速やかに対応いたします。
+          </p>
+          <p>
+            ※ 権利者様からお申し出があった場合も同様に、表示・名称の変更または該当機能の停止に速やかに応じます。
+          </p>
           <p>※ データ取得は公式APIのみを使用しています。</p>
           <p className="flex flex-wrap gap-x-4 gap-y-1 pt-2">
             {[
               ["/legal/terms", "利用規約"],
               ["/legal/privacy", "プライバシーポリシー"],
               ["/legal/tokushoho", "特定商取引法に基づく表記"],
+              ["/legal/contact", "お問い合わせ・掲載停止のご依頼"],
             ].map(([href, label]) => (
               <a key={href} href={href} className="underline underline-offset-2 hover:opacity-70">
                 {label}

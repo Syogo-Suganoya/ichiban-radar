@@ -7,8 +7,15 @@ import Link from "next/link";
  * ⚠️ 一般画面や管理画面のデザインとは無関係。ここは読ませることだけが目的。
  */
 
+/**
+ * 未完成の法務ページに出す但し書き。
+ *
+ * ⚠️ **「雛形」ではなく「ドラフト」と書く。** 雛形は他所から持ってきた汎用の文面という
+ *   含みがあり、読み手には「中身を検討していない」ように映る。
+ *   ここで伝えるべきは、**内容が確定していないことと、正式提供の前に確定させること**。
+ */
 export const LEGAL_PLACEHOLDER =
-  "このページは雛形です。【　】の箇所を実際の情報で埋め、公開前に専門家の確認を受けてください。";
+  "このページはドラフトです。本格的なサービス提供の開始前に、正式な内容を記載します。";
 
 interface Props {
   title: string;
@@ -46,6 +53,9 @@ export default function LegalPage({ title, updatedAt, notice, children }: Props)
         </Link>
         <Link href="/legal/tokushoho" className="text-neutral-500 underline underline-offset-2">
           特定商取引法に基づく表記
+        </Link>
+        <Link href="/legal/contact" className="text-neutral-500 underline underline-offset-2">
+          お問い合わせ・掲載停止のご依頼
         </Link>
       </nav>
 

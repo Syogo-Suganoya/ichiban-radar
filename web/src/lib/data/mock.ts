@@ -152,7 +152,11 @@ export class MockDataSource implements DataSource {
         source: seed.source,
         text: seed.text,
         postedAt: ago(seed.minutesAgo),
-        permalink: seed.source === "x" ? "https://x.com/" : undefined,
+        // ⚠️ **サンプルに架空のpermalinkを入れないこと。**
+        //   根拠カードは permalink があるとリンクになる。X のトップや
+        //   example.invalid を入れると、**押しても投稿に辿り着かないリンク**が
+        //   デモに並ぶ。無い状態を正しく表示するほうが誠実。
+        permalink: undefined,
       },
       analysis: {
         isRelevant: true,

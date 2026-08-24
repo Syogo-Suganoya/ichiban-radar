@@ -18,7 +18,7 @@ const SECTIONS: { heading: string; body?: string[]; rows?: [string, string][] }[
     body: [
       "サービス名：くじレーダー",
       "運営者：【　氏名を記載　】（個人事業主）",
-      "連絡先：【　メールアドレスを記載　】",
+      "連絡先：registration@ssuganoya.com",
     ],
   },
   {
@@ -81,7 +81,7 @@ const SECTIONS: { heading: string; body?: string[]; rows?: [string, string][] }[
     heading: "8. 開示・訂正・削除の請求",
     body: [
       "ご本人からの請求により、保有する個人情報の開示・訂正・利用停止・削除に応じます。",
-      "【　メールアドレスを記載　】までご連絡ください。",
+      "registration@ssuganoya.comまでご連絡ください。",
     ],
   },
   {

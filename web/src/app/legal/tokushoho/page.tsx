@@ -46,7 +46,7 @@ const ROWS: { label: string; value: React.ReactNode }[] = [
       </>
     ),
   },
-  { label: "メールアドレス", value: "【　連絡先メールアドレスを記載　】" },
+  { label: "メールアドレス", value: "registration@ssuganoya.com" },
   {
     label: "販売価格",
     value: (

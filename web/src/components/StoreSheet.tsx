@@ -4,7 +4,7 @@ import BrandIcon from "@/components/BrandIcon";
 import { relativeTime, SOURCE_META, STATUS_META } from "@/lib/status";
 import { FRESH_WINDOW_HOURS } from "@/lib/aggregate";
 import { TOP_PRIZE_META } from "@/lib/stock";
-import type { InventorySignal, Store, Title } from "@/lib/types";
+import type { InventorySignal, RawPost, Store, Title } from "@/lib/types";
 
 /**
  * 店舗詳細のボトムシート。
@@ -13,6 +13,54 @@ import type { InventorySignal, Store, Title } from "@/lib/types";
  * お気に入りだけがログインを必要とするので、未ログイン時はボタンを出さず、
  * 「何ができるようになるか」を示す導線に差し替える。
  */
+
+/**
+ * 根拠として引用した投稿の1件分。
+ *
+ * ★ **必ず投稿元へ辿れるようにする。** 本文だけを並べると、出所の明示（著作権法48条）を
+ *   欠いた全文転載になる。X の表示要件も、投稿内容を出すなら投稿元へ到達できることを
+ *   求めている。permalink は DB に持っているので、出さない理由がない。
+ *
+ * ⚠️ permalink が無い投稿もある（モックデータや、収集経路によっては欠ける）。
+ *   その場合はリンクにせず、同じ見た目のまま静的に出す。
+ *   **リンク切れを出すより、リンクが無いことが分かるほうがいい。**
+ */
+function EvidenceCard({ post }: { post: RawPost }) {
+  const source = SOURCE_META[post.source];
+
+  const body = (
+    <>
+      <div className="mb-1 flex items-center gap-1.5 text-[10.5px] text-neutral-500">
+        <span
+          className={`grid h-4 w-4 place-items-center rounded ${source.badge}`}
+          title={source.label}
+        >
+          <BrandIcon icon={source.icon} className="h-2.5 w-2.5" />
+        </span>
+        {relativeTime(post.postedAt)}
+        {post.permalink && (
+          <span className="ml-auto text-[10px] text-blue-600">{source.label}で開く ↗</span>
+        )}
+      </div>
+      <p className="text-xs leading-relaxed">{post.text}</p>
+    </>
+  );
+
+  const cls = "block rounded-lg border border-neutral-200 p-2.5";
+
+  return post.permalink ? (
+    <a
+      href={post.permalink}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`${cls} transition hover:border-neutral-400`}
+    >
+      {body}
+    </a>
+  ) : (
+    <div className={cls}>{body}</div>
+  );
+}
 
 interface Props {
   store: Store;
@@ -154,20 +202,14 @@ export default function StoreSheet({
             </h3>
             <ul className="mt-2 space-y-2">
               {signal.evidence.map((post) => (
-                <li key={post.id} className="rounded-lg border border-neutral-200 p-2.5">
-                  <div className="mb-1 flex items-center gap-1.5 text-[10.5px] text-neutral-500">
-                    <span
-                      className={`grid h-4 w-4 place-items-center rounded ${SOURCE_META[post.source].badge}`}
-                      title={SOURCE_META[post.source].label}
-                    >
-                      <BrandIcon icon={SOURCE_META[post.source].icon} className="h-2.5 w-2.5" />
-                    </span>
-                    {relativeTime(post.postedAt)}
-                  </div>
-                  <p className="text-xs leading-relaxed">{post.text}</p>
+                <li key={post.id}>
+                  <EvidenceCard post={post} />
                 </li>
               ))}
             </ul>
+            <p className="mt-2 text-[10px] leading-relaxed text-neutral-400">
+              投稿の著作権は各投稿者に帰属します。引用元の投稿はカードから開けます。
+            </p>
           </>
         )}
 
