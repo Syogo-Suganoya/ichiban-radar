@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -42,26 +42,20 @@ SYSTEM_PROMPT = """あなたは日本の「一番くじ」に関するSNS投稿�
 
 
 class Analysis(BaseModel):
-    """1投稿ぶんの解析結果。Gemini の Structured Output スキーマとして使う。
-
-    ⚠️ ここだけは `X | None` ではなく `Optional[X]` を使うこと。
-       Pydantic はフィールドの型注釈を**実行時に評価**するため、
-       Python 3.9 では `str | None` が TypeError になる
-       （`from __future__ import annotations` があっても回避できない）。
-    """
+    """1投稿ぶんの解析結果。Gemini の Structured Output スキーマとして使う。"""
 
     is_relevant: bool = Field(description="一番くじの在庫情報として有用か")
-    store_hint: Optional[str] = Field(description="投稿から読み取れる店舗の表記。不明ならnull")
-    area_hint: Optional[str] = Field(description="都道府県・市区町村・駅名など。不明ならnull")
-    title: Optional[str] = Field(description="一番くじのタイトル（作品名）。不明ならnull")
+    store_hint: str | None = Field(description="投稿から読み取れる店舗の表記。不明ならnull")
+    area_hint: str | None = Field(description="都道府県・市区町村・駅名など。不明ならnull")
+    title: str | None = Field(description="一番くじのタイトル（作品名）。不明ならnull")
     status: StockStatus = Field(description="在庫ステータス")
-    remaining_hint: Optional[int] = Field(description="残り枚数の記述があれば数値。なければnull")
+    remaining_hint: int | None = Field(description="残り枚数の記述があれば数値。なければnull")
     top_prize: TopPrizeState = Field(description="A賞などの上位賞が残っているか")
     confidence: float = Field(description="0.0〜1.0")
     reason: str = Field(description="判定根拠を日本語で一文")
 
 
-def to_camel(analysis: Analysis, store_id: Optional[str], title_id: Optional[str]) -> dict:
+def to_camel(analysis: Analysis, store_id: str | None, title_id: str | None) -> dict:
     """TypeScript 側の `Analysis` 型に合わせた dict へ変換する。"""
     return {
         "isRelevant": analysis.is_relevant,

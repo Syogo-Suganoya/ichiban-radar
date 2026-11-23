@@ -99,7 +99,7 @@ UIはSNSのAPIを直接呼ばず、 **常に「解析済みの結果」だけを
 | **Cloud Run** | Web アプリを Cloud Run サービス、収集・解析バッチを Cloud Run Jobs として置く。<br>どちらも同じ GCP プロジェクト・同じリージョン（asia-northeast1）・同じ Artifact Registry | ① Python のバッチと Web アプリを **同じ GCP に寄せる** ため。1本のワークフロー（[deploy.yml](.github/workflows/deploy.yml)）と同じ Workload Identity 連携で、両方をデプロイしている。<br>② Node ランタイムで動くので、DB ドライバに TCP 接続の `pg` を使える。 **ローカルの Docker の Postgres と Neon の両方に、同じコードで繋げる** （[neon.ts](web/src/lib/data/neon.ts)） |
 | **Neon + PostGIS** | 店舗・投稿・解析結果・電話確認・利用者を保存する。<br>店舗位置は `geography(Point, 4326)` | 「現在地から半径N km」を、メートルで指定して引くため（[位置データの扱い](#位置データの扱い)）。<br>接続は pooled（`-pooler`）を使う。Cloud Run はインスタンスが増減し、直結だと接続数の上限に当たるため |
 | **Gemini** | 投稿本文（と画像）から、店舗の手がかり・在庫ステータス・A賞の有無・確信度を構造化して返させる。<br>既定のモデルは `gemini-3.1-flash-lite`、`temperature=0.0` | 決まった形の JSON を返させる Structured Output と、画像（くじ台紙の写真）の読み取りを使うため。<br>解析費用は1投稿あたり約0.03円と試算している。X API の取得費（約0.75円/件）のほうが大きい（[analyze_posts.py](scripts/analyze_posts.py)） |
-| **Python** （pipeline） | 収集・解析・名寄せ・DB書き込みのバッチ。<br>Python 3.9、Pydantic、`google-genai` | Pydantic のモデルを、そのまま Gemini の出力スキーマに渡せるため（[schema.py](scripts/schema.py)）。<br>テストは pytest を足さず、標準の `unittest` を使う（Docker イメージを軽く保つため） |
+| **Python** （pipeline） | 収集・解析・名寄せ・DB書き込みのバッチ。<br>Python 3.15、Pydantic、`google-genai` | Pydantic のモデルを、そのまま Gemini の出力スキーマに渡せるため（[schema.py](scripts/schema.py)）。<br>テストは pytest を足さず、標準の `unittest` を使う（Docker イメージを軽く保つため） |
 | **Web Push** （VAPID） | お気に入り店舗の在庫が変わったら通知する。<br>`web-push` ライブラリで送信する | 外部の通知サービスを使わず、VAPID 鍵だけで送れるため。<br>鍵が無くてもアプリは動き、通知だけが無効になる（[push.ts](web/src/lib/push.ts)） |
 
 ---
@@ -329,7 +329,7 @@ const SOURCE_WEIGHT: Record<SourceKind, number> = {
 PR と `main` への push で、次の3つを動かします。
 
 1. **Web** ：`npm test`（Vitest）、`tsc --noEmit`（型）、`eslint --max-warnings=0`、`npm run build`。<br>ビルドには秘密情報を渡さず、モックデータで通ることだけを確かめます
-2. **スクリプト** ：Python 3.9 で `unittest` を実行します
+2. **スクリプト** ：Python 3.15 で `unittest` を実行します
 3. **生成物が最新か** ：`gen_stores.py` を実行し、店舗マスターの生成物に差分が出たら失敗にします
 
 ### デプロイ（[deploy.yml](.github/workflows/deploy.yml)）

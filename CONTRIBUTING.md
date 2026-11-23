@@ -140,10 +140,6 @@ AI推測エンジンの出力スキーマは2箇所に存在します。
 **片方だけ変更すると、実データ投入時に静かに壊れます。** 必ず両方を同時に更新してください。
 命名規則の変換は `scripts/schema.py` の `to_camel()` が担っているので、フィールドを増やしたらそこにも追加します。
 
-> ⚠️ **`schema.py` の Pydantic モデルだけは `X | None` ではなく `Optional[X]` を使うこと。**
-> Pydantic はフィールドの型注釈を実行時に評価するため、Python 3.9 では `str | None` が `TypeError` になります。
-> `from __future__ import annotations` があっても回避できません（他のファイルは遅延評価なので新しい記法で問題ありません）。
-
 ### 1b. 店舗マスターは1箇所から生成する
 
 **正は [`scripts/data/stores.json`](scripts/data/stores.json) の1つだけ**です。変更したら再生成してください。

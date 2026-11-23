@@ -17,12 +17,11 @@
 from __future__ import annotations
 
 import sys
-from typing import Optional
 
 from common import env, has
 
 
-def write(analyzed: list, title_id: str) -> Optional[int]:
+def write(analyzed: list, title_id: str) -> int | None:
     """解析結果を保存する。書き込んだ件数を返す。DB未設定なら None。"""
     if not has("DATABASE_URL"):
         return None

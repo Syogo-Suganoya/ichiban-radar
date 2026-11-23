@@ -39,9 +39,7 @@ jobs:
 
   scripts:
     name: スクリプト（名寄せ・ルールベース解析のテスト）
-    # Python 3.9 は ubuntu-latest（26.04）の setup-python で入手できないため、
-    # 3.9 を配布している 24.04 に固定する。3.9 を上げるときはここも ubuntu-latest に戻す
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: scripts
@@ -49,22 +47,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          # ローカルのDockerイメージと同じ 3.9 に揃える。
-          # ここを上げるなら schema.py の Optional[] 制約も見直すこと
-          python-version: "3.9"
+          # scripts/Dockerfile と同じバージョンに揃える
+          python-version: "3.15"
       - run: pip install -r requirements.txt
       - run: python -m unittest discover -p "test_*.py" -v
 
   generated:
     name: 生成物が最新か
-    # Python 3.9 は ubuntu-latest（26.04）の setup-python で入手できないため、
-    # 3.9 を配布している 24.04 に固定する。3.9 を上げるときはここも ubuntu-latest に戻す
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.15"
       # 店舗マスターを変えたのに再生成し忘れると、
       # 画面とDBで内容がずれる（不変条件①b）
       - run: python3 scripts/gen_stores.py

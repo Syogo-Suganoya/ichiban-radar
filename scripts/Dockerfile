@@ -1,9 +1,8 @@
 # 実測・解析スクリプトの実行環境。
 #
-# ローカルの Python 3.9 と揃えている。バージョンを上げるときは
-# scripts/schema.py の Optional[] 制約（CONTRIBUTING.md 不変条件①）も
-# 合わせて見直すこと。
-FROM python:3.9-slim
+# CI（.github/workflows/ci.yml）と同じ Python 3.15 に揃えている。
+# バージョンを上げるときは CI の python-version も合わせて変えること。
+FROM python:3.15-slim
 
 WORKDIR /app
 
