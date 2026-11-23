@@ -39,7 +39,9 @@ jobs:
 
   scripts:
     name: スクリプト（名寄せ・ルールベース解析のテスト）
-    runs-on: ubuntu-latest
+    # Python 3.9 は ubuntu-latest（26.04）の setup-python で入手できないため、
+    # 3.9 を配布している 24.04 に固定する。3.9 を上げるときはここも ubuntu-latest に戻す
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: scripts
@@ -55,7 +57,9 @@ jobs:
 
   generated:
     name: 生成物が最新か
-    runs-on: ubuntu-latest
+    # Python 3.9 は ubuntu-latest（26.04）の setup-python で入手できないため、
+    # 3.9 を配布している 24.04 に固定する。3.9 を上げるときはここも ubuntu-latest に戻す
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
