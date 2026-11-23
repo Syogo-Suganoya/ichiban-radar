@@ -112,8 +112,15 @@ docker compose run --rm scripts python -m unittest discover -p "test_*.py"
 main へマージすると [Deploy](.github/workflows/deploy.yml) が Cloud Run へ反映します
 （リポジトリ変数 `GCP_PROJECT_ID` が未設定のうちは自動でスキップされます）。
 
-**テストは [`aggregate.test.ts`](web/src/lib/aggregate.test.ts) だけあります。**
-集計エンジンは**壊れても画面上は気づけない**唯一の場所だからです。確信度が 0.79 から 0.85 に
+**テストは次の3つにあります。** どれも**壊れても画面上は気づけない**場所だからです。
+
+| テスト | 対象 |
+| :--- | :--- |
+| [`aggregate.test.ts`](web/src/lib/aggregate.test.ts) | 集計エンジン（クロス検証・鮮度減衰・確信度・電話確認の優先・上位賞） |
+| [`demo-freshness.test.ts`](web/src/lib/demo-freshness.test.ts) | デモ表示で、投稿と電話確認の日時を「いま」基準に平行移動する処理 |
+| [`scripts/test_pipeline.py`](scripts/test_pipeline.py) | 店舗の名寄せ・キーキャップ絵文字の正規化・ルールベースの代替解析 |
+
+とくに集計エンジンは、確信度が 0.79 から 0.85 に
 変わってもUIは何事もなく表示されますが、「複数投稿が一致するほど確信度が上がる」という
 信頼性の根拠が崩れます。**閾値や重みを触ったら、必ずテストも一緒に直してください。**
 

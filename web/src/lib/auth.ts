@@ -13,8 +13,10 @@ import { cookies } from "next/headers";
  *
  * パスワードは scrypt でハッシュ化し、セッションはHMAC署名付きの
  * httpOnly Cookie で保持する。外部の認証基盤に依存させていないのは、
- * ⚠️ マネージドな認証基盤へは移さない。一般ユーザーと管理画面で
- *   セッションを分ける設計（CONTRIBUTING 不変条件⑥c）を維持するため。
+ * 一般ユーザーと管理画面でセッションを分ける設計（CONTRIBUTING 不変条件⑥c）を
+ * 維持するため。
+ *
+ * ⚠️ マネージドな認証基盤へは移さない（理由は上と同じ）。
  */
 
 export type SessionKind = "user" | "admin";
